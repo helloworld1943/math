@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title description">
+  <title id="title">Explicit-parameter application validation</title>
+  <desc id="description">The five-node graph for Nat.succ zero, the AND/OR decomposition of ValidApplication with all seven parameters explicit, and the failing requirements exercised by rejection tests.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#526078"/>
+    </marker>
+    <style>
+      text { font-family: Arial, sans-serif; fill: #17243b; font-size: 15px; }
+      .heading { font-size: 23px; font-weight: bold; }
+      .label { font-size: 13px; fill: #465873; }
+      .mono { font-family: monospace; font-size: 14px; }
+      .panel { fill: #fff; stroke: #cbd5e1; }
+      .object { fill: #e8f1ff; stroke: #4270b5; stroke-width: 1.5; }
+      .relation { fill: #f0eaff; stroke: #8261b5; stroke-width: 1.5; }
+      .primitive { fill: #fff4dc; stroke: #b7892e; stroke-width: 1.5; }
+      .logic { fill: #e4f4ee; stroke: #31826a; stroke-width: 1.5; }
+      .edge { fill: none; stroke: #526078; stroke-width: 1.5; marker-end: url(#arrow); }
+      .pass { fill: #16634b; }
+      .fail { fill: #a12c3b; }
+    </style>
+  </defs>
+  <rect width="1200" height="1200" fill="#f3f6fb"/>
+  <text x="35" y="40" class="heading">Two graphs: the candidate program and its validation rules</text>
+  <text x="35" y="66">Blue = program objects; purple = composite relations; gold = primitives; green = AND/OR rules.</text>
+
+  <rect x="25" y="85" width="1150" height="295" rx="12" class="panel"/>
+  <text x="45" y="117" class="heading">1. Candidate program: Nat.succ zero : Nat</text>
+  <text x="45" y="142">Five actual nodes. Parameters A, B, and T all identify the same Nat node.</text>
+  <path d="M245 200 H375" class="edge"/>
+  <text x="270" y="190" class="label">function</text>
+  <path d="M145 225 V295 H375" class="edge"/>
+  <text x="175" y="285" class="label">argument</text>
+  <path d="M565 200 H700" class="edge"/>
+  <text x="615" y="190" class="label">type</text>
+  <path d="M795 225 V270 H980 V295" class="edge"/>
+  <text x="812" y="261" class="label">domain, codomain</text>
+  <path d="M565 320 H885" class="edge"/>
+  <text x="700" y="310" class="label">type</text>
+  <path d="M145 175 V155 H1105 V320 H1075" class="edge"/>
+  <text x="1045" y="181" class="label">type</text>
+  <rect x="45" y="175" width="200" height="50" rx="8" class="object"/>
+  <text x="145" y="205" text-anchor="middle" class="mono">p = app</text>
+  <rect x="375" y="175" width="190" height="50" rx="8" class="object"/>
+  <text x="470" y="205" text-anchor="middle" class="mono">f = succ</text>
+  <rect x="700" y="175" width="190" height="50" rx="8" class="object"/>
+  <text x="795" y="205" text-anchor="middle" class="mono">F = NatToNat</text>
+  <rect x="375" y="295" width="190" height="50" rx="8" class="object"/>
+  <text x="470" y="325" text-anchor="middle" class="mono">a = zero</text>
+  <rect x="885" y="295" width="190" height="50" rx="8" class="object"/>
+  <text x="980" y="325" text-anchor="middle" class="mono">A = B = T = Nat</text>
+  <text x="45" y="365" class="label">Edges propose structure and types. They are not, on their own, proofs of validity.</text>
+
+  <rect x="25" y="400" width="1150" height="475" rx="12" class="panel"/>
+  <text x="45" y="433" class="heading">2. Relation definition: all six requirements must hold</text>
+  <rect x="365" y="455" width="470" height="42" rx="8" class="relation"/>
+  <text x="600" y="481" text-anchor="middle" class="mono">ValidApplication(p, f, a, F, A, B, T)</text>
+  <path d="M600 497 V515" class="edge"/>
+  <rect x="550" y="515" width="100" height="32" rx="12" class="logic"/>
+  <text x="600" y="537" text-anchor="middle">AND</text>
+  <path d="M600 547 V564 H130 V590" class="edge"/>
+  <path d="M600 564 H318 V590" class="edge"/>
+  <path d="M600 564 H506 V590" class="edge"/>
+  <path d="M600 564 H694 V590" class="edge"/>
+  <path d="M600 564 H882 V590" class="edge"/>
+  <path d="M600 564 H1070 V590" class="edge"/>
+  <rect x="40" y="590" width="180" height="55" rx="8" class="primitive"/>
+  <text x="130" y="612" text-anchor="middle" class="mono">ApplicationShape</text>
+  <text x="130" y="633" text-anchor="middle" class="mono">(p, f, a)</text>
+  <rect x="228" y="590" width="180" height="55" rx="8" class="primitive"/>
+  <text x="318" y="612" text-anchor="middle" class="mono">FunctionTypeShape</text>
+  <text x="318" y="633" text-anchor="middle" class="mono">(F, A, B)</text>
+  <rect x="416" y="590" width="180" height="55" rx="8" class="relation"/>
+  <text x="506" y="623" text-anchor="middle" class="mono">HasType(f, F)</text>
+  <rect x="604" y="590" width="180" height="55" rx="8" class="relation"/>
+  <text x="694" y="623" text-anchor="middle" class="mono">HasType(a, A)</text>
+  <rect x="792" y="590" width="180" height="55" rx="8" class="primitive"/>
+  <text x="882" y="612" text-anchor="middle" class="mono">TypeAnnotation</text>
+  <text x="882" y="633" text-anchor="middle" class="mono">(p, T)</text>
+  <rect x="980" y="590" width="180" height="55" rx="8" class="primitive"/>
+  <text x="1070" y="623" text-anchor="middle" class="mono">SameNode(T, B)</text>
+  <path d="M506 645 V675" class="edge"/>
+  <path d="M694 645 V675" class="edge"/>
+  <rect x="456" y="675" width="100" height="30" rx="12" class="logic"/>
+  <text x="506" y="696" text-anchor="middle">OR</text>
+  <rect x="644" y="675" width="100" height="30" rx="12" class="logic"/>
+  <text x="694" y="696" text-anchor="middle">OR</text>
+  <path d="M506 705 V720 H350 V740" class="edge"/>
+  <path d="M506 720 H540 V740" class="edge"/>
+  <path d="M694 705 V720 H730 V740" class="edge"/>
+  <path d="M694 720 H920 V740" class="edge"/>
+  <rect x="260" y="740" width="180" height="55" rx="8" class="primitive"/>
+  <text x="350" y="761" text-anchor="middle" class="mono">ZeroType(f, F)</text>
+  <text x="350" y="783" text-anchor="middle" class="fail">fails for succ</text>
+  <rect x="450" y="740" width="180" height="55" rx="8" class="primitive"/>
+  <text x="540" y="761" text-anchor="middle" class="mono">SuccessorType(f,F)</text>
+  <text x="540" y="783" text-anchor="middle" class="pass">holds for succ</text>
+  <rect x="640" y="740" width="180" height="55" rx="8" class="primitive"/>
+  <text x="730" y="761" text-anchor="middle" class="mono">ZeroType(a, A)</text>
+  <text x="730" y="783" text-anchor="middle" class="pass">holds for zero</text>
+  <rect x="830" y="740" width="180" height="55" rx="8" class="primitive"/>
+  <text x="920" y="761" text-anchor="middle" class="mono">SuccessorType(a,A)</text>
+  <text x="920" y="783" text-anchor="middle" class="label">fails; short-circuited</text>
+  <text x="45" y="825">All child arguments occur in their parent's parameter list. No hidden logical variables.</text>
+  <text x="45" y="850" class="label">These are validation rules, not runtime Boolean nodes. OR needs one successful case, not every case.</text>
+
+  <rect x="25" y="895" width="1150" height="280" rx="12" class="panel"/>
+  <text x="45" y="928" class="heading">3. Rejection tests: change a candidate, break a requirement</text>
+  <text x="45" y="960" class="mono">argument = succ instead of zero</text>
+  <text x="570" y="960" class="fail">HasType(succ, Nat) fails: neither case holds.</text>
+  <text x="45" y="993" class="mono">result annotation T = NatToNat</text>
+  <text x="570" y="993" class="fail">SameNode(NatToNat, Nat) fails.</text>
+  <text x="45" y="1026" class="mono">domain witness A = NatToNat</text>
+  <text x="570" y="1026" class="fail">FunctionTypeShape fails: domain edge is Nat.</text>
+  <text x="45" y="1059" class="mono">fake : Nat, with kind = unknown</text>
+  <text x="570" y="1059" class="fail">HasType fails despite the proposed type edge.</text>
+  <text x="45" y="1092" class="mono">Hidden(x) := SameNode(x, d)</text>
+  <text x="570" y="1092" class="fail">Definition error: d is not an outer parameter.</text>
+  <text x="45" y="1133" class="label">Other tests check malformed definitions, root calls, dangling edges, recursion, and primitive errors.</text>
+  <text x="45" y="1155" class="label">All objects and types are supplied; the validator checks them rather than searching for missing witnesses.</text>
+</svg>

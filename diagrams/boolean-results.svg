@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1310" viewBox="0 0 1200 1310" style="max-width:100%;height:auto" role="img" aria-labelledby="title description">
+  <title id="title">One function returns a type, a function, or a symbolic result</title>
+  <desc id="description">F true returns Bool with type Sort 0; F false returns polymorphic identity with type IdType; with an unknown Boolean b the result remains symbolic with type Result(b). The case node contains a motive and both branches, and typing requires proofs for both branches even when the condition is known.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#526078"/></marker>
+    <style>
+      text { font-family: Arial, sans-serif; font-size: 17px; fill: #17243b; }
+      .title { font-size: 27px; font-weight: bold; }
+      .heading { font-size: 21px; font-weight: bold; }
+      .small { font-size: 15px; fill: #465873; }
+      .mono { font-family: monospace; font-size: 17px; }
+      .panel { fill: white; stroke: #cbd5e1; }
+      .node { fill: #e8f1ff; stroke: #4270b5; stroke-width: 1.5; }
+      .rule { fill: #f0eaff; stroke: #8261b5; stroke-width: 1.5; }
+      .good { fill: #e4f4ee; stroke: #31826a; }
+      .bad { fill: #fff0f0; stroke: #bd4756; }
+      .edge { fill: none; stroke: #526078; stroke-width: 1.6; marker-end: url(#arrow); }
+      .computation { stroke-dasharray: 6 4; }
+    </style>
+  </defs>
+  <rect width="1200" height="1310" fill="#f3f6fb"/>
+  <text x="35" y="42" class="title">4. The tricky case: one function can return a type or a value</text>
+  <text x="35" y="72" class="small">This F is a checked closed lambda, not an assumed function. Dashed arrows show checked reduction steps.</text>
+
+  <rect x="25" y="95" width="1150" height="175" rx="12" class="panel"/>
+  <text x="45" y="128" class="mono">id = lambda A : Sort 0. lambda x : A. x</text>
+  <text x="45" y="162" class="mono">IdType = (A : Sort 0) -&gt; (x : A) -&gt; A</text>
+  <text x="45" y="196" class="mono">Result(b) = if b then Sort 0 else IdType</text>
+  <text x="45" y="230" class="mono">F : (b : Bool) -&gt; Result(b); F(b) = if b then Bool else id</text>
+
+  <rect x="25" y="290" width="1150" height="250" rx="12" class="panel"/>
+  <text x="45" y="325" class="heading">Inside F: a case node has four links</text>
+  <path d="M600 400 V420 H190 V450" class="edge"/>
+  <path d="M600 420 H460 V450" class="edge"/>
+  <path d="M600 420 H730 V450" class="edge"/>
+  <path d="M600 420 H1000 V450" class="edge"/>
+  <rect x="400" y="345" width="400" height="55" rx="8" class="node"/>
+  <text x="600" y="379" text-anchor="middle" class="mono">bool_elim</text>
+  <text x="190" y="440" text-anchor="middle" class="small">motive</text>
+  <text x="460" y="440" text-anchor="middle" class="small">condition</text>
+  <text x="730" y="440" text-anchor="middle" class="small">then_branch</text>
+  <text x="1000" y="440" text-anchor="middle" class="small">else_branch</text>
+  <rect x="65" y="450" width="250" height="55" rx="8" class="node"/>
+  <text x="190" y="484" text-anchor="middle" class="mono">Result</text>
+  <rect x="335" y="450" width="250" height="55" rx="8" class="node"/>
+  <text x="460" y="484" text-anchor="middle" class="mono">reference to b</text>
+  <rect x="605" y="450" width="250" height="55" rx="8" class="node"/>
+  <text x="730" y="484" text-anchor="middle" class="mono">Bool</text>
+  <rect x="875" y="450" width="250" height="55" rx="8" class="node"/>
+  <text x="1000" y="484" text-anchor="middle" class="mono">id</text>
+
+  <rect x="25" y="560" width="370" height="350" rx="12" class="panel"/>
+  <text x="45" y="595" class="heading">PASS: argument true</text>
+  <rect x="60" y="620" width="300" height="50" rx="8" class="node"/>
+  <text x="210" y="652" text-anchor="middle" class="mono">F true</text>
+  <path d="M210 670 V710" class="edge computation"/>
+  <rect x="60" y="710" width="300" height="65" rx="8" class="node"/>
+  <text x="210" y="750" text-anchor="middle" class="mono">Bool : Sort 0</text>
+  <text x="45" y="815">The result is a type.</text>
+  <text x="45" y="849" class="mono">true : F true</text>
+  <text x="45" y="884" class="small">We actually use it as a type.</text>
+
+  <rect x="415" y="560" width="370" height="350" rx="12" class="panel"/>
+  <text x="435" y="595" class="heading">PASS: argument false</text>
+  <rect x="450" y="620" width="300" height="50" rx="8" class="node"/>
+  <text x="600" y="652" text-anchor="middle" class="mono">F false</text>
+  <path d="M600 670 V710" class="edge computation"/>
+  <rect x="450" y="710" width="300" height="65" rx="8" class="node"/>
+  <text x="600" y="750" text-anchor="middle" class="mono">id : IdType</text>
+  <text x="435" y="815">The result is a function.</text>
+  <text x="435" y="849" class="mono">(F false) Bool true = true</text>
+  <text x="435" y="884" class="small">We actually call the returned value.</text>
+
+  <rect x="805" y="560" width="370" height="350" rx="12" class="panel"/>
+  <text x="825" y="595" class="heading">PASS: b is unknown</text>
+  <rect x="840" y="620" width="300" height="50" rx="8" class="node"/>
+  <text x="990" y="652" text-anchor="middle" class="mono">F b</text>
+  <path d="M990 670 V710" class="edge computation"/>
+  <rect x="840" y="710" width="300" height="65" rx="8" class="node"/>
+  <text x="990" y="737" text-anchor="middle" class="mono">case(Result, b, Bool, id)</text>
+  <text x="990" y="762" text-anchor="middle" class="mono">: Result(b)</text>
+  <text x="825" y="815">No branch can be selected yet.</text>
+  <text x="825" y="849">The graph stays symbolic.</text>
+  <text x="825" y="884" class="small">Unknown does not mean ill-typed.</text>
+
+  <rect x="25" y="930" width="1150" height="260" rx="12" class="panel"/>
+  <text x="45" y="965" class="heading">Typing checks every requirement, including both branches</text>
+  <rect x="390" y="985" width="420" height="42" rx="8" class="rule"/>
+  <text x="600" y="1013" text-anchor="middle">Case typing: AND</text>
+  <path d="M600 1027 V1045 H190 V1070" class="edge"/>
+  <path d="M600 1045 H460 V1070" class="edge"/>
+  <path d="M600 1045 H730 V1070" class="edge"/>
+  <path d="M600 1045 H1000 V1070" class="edge"/>
+  <rect x="65" y="1070" width="250" height="65" rx="8" class="rule"/>
+  <text x="190" y="1097" text-anchor="middle" class="mono">Result</text>
+  <text x="190" y="1122" text-anchor="middle" class="mono">: Bool -&gt; Sort 1</text>
+  <rect x="335" y="1070" width="250" height="65" rx="8" class="rule"/>
+  <text x="460" y="1110" text-anchor="middle" class="mono">b : Bool</text>
+  <rect x="605" y="1070" width="250" height="65" rx="8" class="rule"/>
+  <text x="730" y="1110" text-anchor="middle" class="mono">Bool : Result(true)</text>
+  <rect x="875" y="1070" width="250" height="65" rx="8" class="rule"/>
+  <text x="1000" y="1110" text-anchor="middle" class="mono">id : Result(false)</text>
+  <text x="45" y="1170">REJECT: a wrong else-branch still fails typing, even when the condition is already true.</text>
+  <text x="35" y="1230" class="small">Source: test_boolean.py mixed-result, returned-type/function, symbolic-condition, and bad-dead-branch tests.</text>
+  <text x="35" y="1256" class="small">Simplified graph: the actual certificates also supply contexts, function types, applications, and equality steps.</text>
+  <text x="35" y="1282" class="small">Program Boolean values are different from validation predicates: every required validation predicate must hold.</text>
+</svg>

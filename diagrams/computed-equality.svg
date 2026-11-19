@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="965" viewBox="0 0 1200 965" style="max-width:100%;height:auto" role="img" aria-labelledby="title description">
+  <title id="title">Computed type equality and finite proof graphs</title>
+  <desc id="description">A type expression that applies the type identity function to N reduces to N. Type conversion requires the original typing, an equality proof, and a well-formed target type. Circular evidence is rejected, while finite proofs support deeply nested substitution.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#526078"/></marker>
+    <style>
+      text { font-family: Arial, sans-serif; font-size: 17px; fill: #17243b; }
+      .title { font-size: 27px; font-weight: bold; }
+      .heading { font-size: 21px; font-weight: bold; }
+      .small { font-size: 15px; fill: #465873; }
+      .mono { font-family: monospace; font-size: 17px; }
+      .panel { fill: white; stroke: #cbd5e1; }
+      .node { fill: #e8f1ff; stroke: #4270b5; stroke-width: 1.5; }
+      .rule { fill: #f0eaff; stroke: #8261b5; stroke-width: 1.5; }
+      .good { fill: #e4f4ee; stroke: #31826a; }
+      .bad { fill: #fff0f0; stroke: #bd4756; }
+      .edge { fill: none; stroke: #526078; stroke-width: 1.6; marker-end: url(#arrow); }
+      .computation { stroke-dasharray: 6 4; }
+    </style>
+  </defs>
+  <rect width="1200" height="965" fill="#f3f6fb"/>
+  <text x="35" y="42" class="title">3. Different type expressions can compute to the same type</text>
+  <text x="35" y="72" class="small">Assumptions: N : Sort 0 and n : N. Dashed arrows below represent justified computation steps.</text>
+
+  <rect x="25" y="95" width="1150" height="240" rx="12" class="panel"/>
+  <text x="45" y="130" class="heading">PASS: T is not the same expression node as N</text>
+  <rect x="65" y="165" width="640" height="70" rx="8" class="node"/>
+  <text x="385" y="207" text-anchor="middle" class="mono">T = (lambda A : Sort 0. A) N</text>
+  <path d="M705 200 H965" class="edge computation"/>
+  <text x="755" y="181" class="small">beta reduction</text>
+  <rect x="965" y="165" width="150" height="70" rx="8" class="node"/>
+  <text x="1040" y="207" text-anchor="middle" class="mono">N</text>
+  <rect x="65" y="260" width="1050" height="48" rx="8" class="good"/>
+  <text x="85" y="290">A supplied substitution proof justifies T = N. Symmetry gives the equality N = T.</text>
+
+  <rect x="25" y="355" width="1150" height="330" rx="12" class="panel"/>
+  <text x="45" y="390" class="heading">To accept n : T, all three requirements must hold</text>
+  <rect x="390" y="415" width="420" height="50" rx="8" class="rule"/>
+  <text x="600" y="446" text-anchor="middle" class="mono">Typing(context, n, T)</text>
+  <path d="M600 465 V480" class="edge"/>
+  <rect x="550" y="480" width="100" height="35" rx="12" class="good"/>
+  <text x="600" y="504" text-anchor="middle">AND</text>
+  <path d="M600 515 V535 H235 V560" class="edge"/>
+  <path d="M600 535 V560" class="edge"/>
+  <path d="M600 535 H965 V560" class="edge"/>
+  <rect x="65" y="560" width="340" height="70" rx="8" class="rule"/>
+  <text x="235" y="590" text-anchor="middle" class="mono">Typing(context, n, N)</text>
+  <text x="235" y="615" text-anchor="middle" class="small">original typing proof</text>
+  <rect x="430" y="560" width="340" height="70" rx="8" class="rule"/>
+  <text x="600" y="590" text-anchor="middle" class="mono">Equal(N, T)</text>
+  <text x="600" y="615" text-anchor="middle" class="small">explicit computation evidence</text>
+  <rect x="795" y="560" width="340" height="70" rx="8" class="rule"/>
+  <text x="965" y="590" text-anchor="middle" class="mono">Typing(context, T, Sort 0)</text>
+  <text x="965" y="615" text-anchor="middle" class="small">the target is a valid type</text>
+  <text x="45" y="660" class="small">A proposed type edge alone is not enough. Each of these proof steps is checked.</text>
+
+  <rect x="25" y="705" width="560" height="175" rx="12" class="panel"/>
+  <text x="45" y="740" class="heading">PASS: finite evidence at many depths</text>
+  <text x="45" y="778" class="mono">outer step -&gt; child -&gt; ... -&gt; leaf</text>
+  <text x="45" y="815">Tested: substitution through 40 lambdas.</text>
+  <text x="45" y="848" class="small">Every child witness also appears in the outer interface.</text>
+  <rect x="605" y="705" width="570" height="175" rx="12" class="panel"/>
+  <text x="625" y="740" class="heading">REJECT: a proof that depends on itself</text>
+  <rect x="640" y="760" width="220" height="45" rx="8" class="bad"/>
+  <text x="750" y="789" text-anchor="middle" class="mono">proof P</text>
+  <path d="M860 783 H1060 V835 H750 V805" class="edge"/>
+  <text x="890" y="771" class="small">requires P</text>
+  <text x="625" y="860" class="small">A cycle is not a justification. The checker rejects it.</text>
+  <text x="35" y="920" class="small">Source: test_dependent.py type conversion, nested substitution, and circular-evidence tests.</text>
+  <text x="35" y="945" class="small">Simplified relation graph: the original checker uses the supplied context, universes, and all intermediate objects.</text>
+</svg>
