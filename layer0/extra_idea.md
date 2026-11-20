@@ -1,7 +1,7 @@
 # Extra ideas: computation, visibility, the root, and cycles
 
 These are the rules we agreed on after building the first examples in
-[idea.md](./idea.md). Some are design choices that the Python prototype does
+[idea.md](../idea.md). Some are design choices that the Python prototype does
 not enforce yet.
 
 ## 1. Computation behind a relation
@@ -231,13 +231,13 @@ still needs typing and computation rules.
 ## 10. What the current prototype actually enforces
 
 - Primitive checks currently receive the whole graph in
-  [relations.py](./relations.py). All-children visibility is not enforced yet.
+  [relations.py](../relations.py). All-children visibility is not enforced yet.
 - The prototype expects primitives not to mutate the graph or depend on
   external state, but it does not sandbox arbitrary Python code.
 - The new requirement that every node be reachable from a designated root is
   not enforced yet.
 - The validator rejects cyclic relation-definition dependencies.
-- The dependent checker in [dependent.py](./dependent.py) also rejects cyclic
+- The dependent checker in [dependent.py](../dependent.py) also rejects cyclic
   proof graphs before expanding them into finite relation checks.
 
 To enforce the new visibility rule, primitives would need a graph-access

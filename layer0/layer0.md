@@ -2,7 +2,7 @@
 
 Layer 0 is the ground of our graph system. It does not know what a function,
 type, variable, containment, or proof means. Those meanings belong to the
-next layer, which we call Layer -1.
+next layer, which we now call [Layer 1](../layer1/nodetype.md).
 
 From the view of Layer 0, writing a program means creating nodes and links.
 The result is a graph.
@@ -10,6 +10,9 @@ The result is a graph.
 The library is [layer0.py](./layer0.py). A runnable example is
 [layer0_demo.py](./layer0_demo.py), and the tests are in
 [test_layer0.py](./test_layer0.py).
+
+The design notes about visibility, the root, and cycles are in
+[extra_idea.md](./extra_idea.md).
 
 For a visual walkthrough, open [layer0_animation.html](./layer0_animation.html)
 in a browser. The roughly 30-second animation has play/pause, back/next, and
@@ -189,9 +192,12 @@ language-specific validation still need their own rules.
 
 Python 3.10 or newer is sufficient. No third-party packages are needed.
 
+Run these commands from the repository root. The package keeps imports such
+as `from layer0 import Graph` working.
+
 ```sh
-python3 layer0_demo.py
-python3 -m unittest -v test_layer0
+python3 -m layer0.layer0_demo
+python3 -m unittest -v layer0.test_layer0
 python3 -m unittest -v
 ```
 

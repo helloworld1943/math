@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Layer 1 - from connections to meaning</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #243332;
+      background: #f5f4ee;
+      --accent: #167762;
+      --muted: #65736d;
+      --line: #dce0d5;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, a:focus-visible, input:focus-visible {
+      outline: 3px solid #dc9d44; outline-offset: 3px;
+    }
+    .page { max-width: 1300px; margin: auto; padding: 32px 28px 26px; }
+    header { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
+    .eyebrow { margin: 0 0 10px; color: var(--accent); font-size: 11px; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { margin: 0 0 10px; font-size: clamp(28px, 4vw, 43px); line-height: 1.12; letter-spacing: -.045em; font-weight: 650; }
+    .intro { margin: 0; color: var(--muted); line-height: 1.6; font-size: 14px; max-width: 750px; }
+    .links { display: flex; flex-direction: column; gap: 12px; padding-top: 10px; flex-shrink: 0; }
+    a { color: #335d51; text-underline-offset: 4px; font-size: 12px; }
+    .implementation-note { padding: 11px 15px; margin-bottom: 22px; border: 1px solid #e1d5b6; border-radius: 10px; background: #fff9e8; color: #705e38; font-size: 12px; line-height: 1.55; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 335px; gap: 24px; }
+    .stage { position: relative; background: #142b2b; border-radius: 18px; overflow: hidden; }
+    .stage-top { position: absolute; top: 17px; left: 20px; right: 20px; display: flex; justify-content: space-between; gap: 16px; color: #b1c7bf; font-size: 11px; }
+    .stage svg { width: 100%; height: auto; display: block; }
+    .stage-foot { position: absolute; bottom: 17px; left: 20px; right: 20px; display: flex; flex-wrap: wrap; gap: 15px; color: #bdcec5; font-size: 10px; }
+    .key { display: inline-flex; align-items: center; gap: 6px; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #a3bff4; }
+    .dot.type { background: #d5b8fc; }
+    .dot.relation { background: #95dfbc; }
+    .edge { fill: none; stroke: #698c80; stroke-width: 1.7; marker-end: url(#arrow); }
+    .edge.computation { stroke: #e8c38e; stroke-dasharray: 7 5; marker-end: url(#arrow-gold); animation: flow 1.8s linear infinite; }
+    .edge-label { fill: #b6d1c2; font-size: 12px; paint-order: stroke; stroke: #142b2b; stroke-width: 5px; stroke-linejoin: round; }
+    .node { cursor: pointer; }
+    .node rect { fill: #263e51; stroke: #8aa7c4; stroke-width: 1.5; transition: stroke .25s, fill .25s; }
+    .node.type rect { fill: #3d3651; stroke: #b5a0d1; }
+    .node.relation rect { fill: #225044; stroke: #81b79b; }
+    .node.context rect { fill: #3c4637; stroke: #a4b789; }
+    .node.failed rect { fill: #58372f; stroke: #f0ab95; }
+    .node.selected rect { stroke: #ffe5b3; stroke-width: 3; }
+    .node:focus { outline: none; }
+    .node:focus rect { stroke: #ffe5b3; stroke-width: 3; }
+    .node text { fill: #edf5ee; text-anchor: middle; font-size: 16px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; pointer-events: none; }
+    .node .kind { fill: #b9c9bd; font-size: 10px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .drawing-note { margin: 10px 4px 0; color: var(--muted); font-size: 11px; line-height: 1.55; }
+    .inspection { border: 1px solid var(--line); border-radius: 11px; margin-top: 14px; padding: 13px 16px; background: #fffef9; display: flex; gap: 18px; align-items: start; }
+    .inspection strong { font-size: 12px; min-width: 105px; color: #386153; }
+    #node-details { font-size: 12px; line-height: 1.55; color: #697569; }
+    .counter { margin: 0 0 12px; color: var(--accent); font-size: 12px; font-weight: 700; }
+    h2 { font-size: 26px; line-height: 1.18; letter-spacing: -.03em; margin: 0 0 13px; }
+    #explanation { min-height: 92px; color: #5c6e62; font-size: 14px; line-height: 1.7; margin: 0 0 15px; }
+    .code-card { border: 1px solid var(--line); border-radius: 11px; overflow: hidden; background: #fffef9; }
+    .card-label { padding: 9px 13px; border-bottom: 1px solid #e7e8dd; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+    pre { margin: 0; padding: 13px; font-size: 12px; line-height: 1.8; overflow-x: auto; color: #315d4b; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .result { margin-top: 13px; background: #e4eee1; color: #36543e; border-radius: 10px; padding: 13px 15px; font-size: 12px; line-height: 1.6; }
+    .result[data-tone="reject"] { background: #f7e5da; color: #864437; }
+    .result[data-tone="boundary"] { background: #eee9d9; color: #6d634b; }
+    .evidence { font-size: 11px; color: #6f7869; line-height: 1.6; margin-top: 13px; }
+    .evidence a { font-size: 11px; }
+    .controls { display: flex; gap: 9px; align-items: center; margin-top: 22px; }
+    .controls button { border: 1px solid #ccd6c8; background: #fafbf4; color: #3e5748; border-radius: 8px; min-height: 40px; padding: 9px 13px; font-size: 12px; }
+    .controls button.primary { background: #25644d; color: #fff; border-color: #25644d; min-width: 87px; }
+    .controls button:disabled { opacity: .4; cursor: default; }
+    input[type="range"] { flex: 1; min-width: 70px; accent-color: #267650; }
+    .length { color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .timeline { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px 10px; margin-top: 16px; }
+    .timeline button { border: 0; border-top: 3px solid #d7ddcf; background: transparent; padding: 8px 6px; color: #758071; text-align: left; font-size: 11px; line-height: 1.4; min-height: 40px; }
+    .timeline button.past { border-color: #9eba9e; }
+    .timeline button.current { border-color: #26764f; color: #254c37; font-weight: 700; }
+    .toggles { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .toggles[hidden] { display: none; }
+    .toggles button { border: 1px solid #c4d3bb; border-radius: 7px; padding: 7px 11px; font-size: 11px; background: #fafbf4; color: #45634a; }
+    .toggles button[aria-pressed="true"] { background: #e7efde; border-color: #7f9f6e; font-weight: 700; }
+    footer { margin-top: 21px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 11px; line-height: 1.7; color: #717d6a; }
+    @keyframes flow { to { stroke-dashoffset: -24; } }
+    body[data-playing="false"] .edge.computation { animation-play-state: paused; }
+    @media (max-width: 950px) {
+      .layout { grid-template-columns: minmax(0, 1fr); }
+      .story { display: grid; grid-template-columns: 1fr 1fr; gap: 0 22px; }
+      .narrative { grid-row: span 3; }
+      #explanation { min-height: 0; }
+    }
+    @media (max-width: 540px) {
+      .page { padding: 24px 15px; }
+      header { display: block; }
+      .links { flex-direction: row; padding-top: 15px; flex-wrap: wrap; }
+      .stage-top { top: 10px; left: 12px; right: 12px; font-size: 9px; }
+      .stage-foot { bottom: 10px; left: 12px; font-size: 8px; gap: 10px; }
+      .story { display: block; }
+      .controls { flex-wrap: wrap; gap: 6px; }
+      .controls button { padding: 8px 11px; }
+      .length { display: none; }
+      .timeline { grid-template-columns: repeat(2, 1fr); }
+      .inspection { display: block; }
+      #node-details { margin-top: 6px; }
+      h2 { font-size: 25px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body data-playing="false">
+  <main class="page">
+    <header>
+      <div>
+        <p class="eyebrow">Layer 1 / a visual walkthrough</p>
+        <h1>Connections become expressions and checks.</h1>
+        <p class="intro">Follow a small function from its type to its application, then see how relations and inductive declarations fit into the same graph.</p>
+      </div>
+      <div class="links">
+        <a href="layer1.md">Implementation guide</a>
+        <a href="nodetype.md">Node types</a>
+        <a href="../layer0/layer0_animation.html">Layer 0 animation</a>
+      </div>
+    </header>
+    <div class="implementation-note">
+      <strong>Current code, not every planned feature.</strong> Here U(n) still means Lean Type n, not Sort n.
+      The proposed universe-form TypeNode and Lambda Parameters/LambdaBody migration are not implemented.
+    </div>
+    <div class="layout">
+      <section>
+        <div class="stage">
+          <div class="stage-top"><span id="stage-label">Expression structure</span><span>Click a node to inspect its role</span></div>
+          <svg viewBox="0 0 800 450" role="img" aria-labelledby="graph-title graph-description">
+            <title id="graph-title">Layer 1 example graph</title>
+            <desc id="graph-description"></desc>
+            <defs>
+              <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="12" cy="12" r=".7" fill="#34514b"/></pattern>
+              <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#698c80"/></marker>
+              <marker id="arrow-gold" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#e8c38e"/></marker>
+            </defs>
+            <rect width="800" height="450" fill="url(#grid)"/>
+            <g id="edges"></g>
+            <g id="nodes"></g>
+          </svg>
+          <div class="stage-foot">
+            <span class="key"><i class="dot"></i>expression / identity</span>
+            <span class="key"><i class="dot type"></i>type description</span>
+            <span class="key"><i class="dot relation"></i>checking relation</span>
+          </div>
+        </div>
+        <p class="drawing-note">Simplified drawings: link-role helpers and some context/type details are omitted. Arrows show stored connections; dashed arrows show checked computation, not mutation of the original graph.</p>
+        <div class="inspection" aria-live="polite"><strong id="node-name">Selected node</strong><div id="node-details"></div></div>
+      </section>
+      <section class="story" aria-live="polite" aria-atomic="true">
+        <div class="narrative">
+          <p class="counter" id="counter"></p>
+          <h2 id="step-title"></h2>
+          <p id="explanation"></p>
+        </div>
+        <div class="code-card"><div class="card-label">What this graph says</div><pre><code id="notation"></code></pre></div>
+        <div class="result" id="result"></div>
+        <div class="evidence">Implemented example: <a id="source" href="demo.py">demo.py</a></div>
+        <div class="toggles" id="logic-controls" hidden aria-label="Compare AND and OR">
+          <button type="button" id="choose-and" aria-pressed="true">RelationAnd</button>
+          <button type="button" id="choose-or" aria-pressed="false">RelationOr</button>
+        </div>
+      </section>
+    </div>
+    <div class="controls" aria-label="Animation playback">
+      <button type="button" id="restart" aria-label="Restart animation">Restart</button>
+      <button type="button" id="back" aria-label="Previous step">Back</button>
+      <button type="button" id="play" class="primary">Play</button>
+      <button type="button" id="next" aria-label="Next step">Next</button>
+      <input type="range" id="progress" min="0" max="9" value="0" step="1" aria-label="Jump to walkthrough step">
+      <span class="length">~40 seconds</span>
+    </div>
+    <nav id="timeline" class="timeline" aria-label="Walkthrough steps"></nav>
+    <footer>
+      This is a standalone JavaScript illustration of verified Python cases, not the Python checker running in your browser.
+      It works offline and needs no packages or server. Playback stops at the final step; reduced-motion preferences disable autoplay.
+      Tests are evidence for these cases, not a proof that Layer 1 is a complete or sound implementation of Lean.
+    </footer>
+    <noscript><p>JavaScript is required for this walkthrough. Read layer1.md for the same concepts.</p></noscript>
+  </main>
+  <script>
+    "use strict";
+    const ns = "http://www.w3.org/2000/svg";
+    const node = (id, label, kind, x, y, detail, tone = "") => ({id, label, kind, x, y, detail, tone});
+    const edge = (from, to, label, options = {}) => ({from, to, label, ...options});
+    const identityNodes = () => [
+      node("f", "identity", "Lambda", 120, 115, "Current Lambda fields: variable, domain, body. It introduces x and returns x."),
+      node("x", "x", "Variable", 400, 215, "The binder's identity. The body and parameter connections point to this same node."),
+      node("u1", "U(1)", "Universe", 660, 115, "Current U(1) corresponds to Lean Type 1. U(0) has this type.", "type")
+    ];
+    const scenes = [
+      {
+        short: "Universe", title: "A type also has a type.", stage: "Primitive universe rule",
+        explanation: "U(0) and U(1) are explicit nodes. The Relation asks whether U(0) has type U(1). It checks the successor levels; it is not another type object.",
+        notation: "U(0) : U(1)\nHasType [U(0), U(1)]",
+        result: "PASS: the levels differ by exactly one.", tone: "pass", source: "demo.py",
+        nodes: [
+          node("r", "HasType", "Relation", 400, 105, "A checking request with two ordered inputs. It has no graph output.", "relation"),
+          node("u0", "U(0)", "Universe", 170, 290, "The smallest universe in the existing implementation: Lean Type 0, not Prop.", "type"),
+          node("u1", "U(1)", "Universe", 630, 290, "The supplied type of U(0). The checker does not invent this node.", "type")
+        ],
+        edges: [edge("r", "u0", "first input"), edge("r", "u1", "second input")]
+      },
+      {
+        short: "TypeNode", title: "A type description is not a check.", stage: "TypeNode / function form",
+        explanation: "The function form of TypeNode directly describes (x : U(1)) -> U(1). There is no separate FunctionType graph node and no Lambda body here.",
+        notation: "T = (x : U(1)) -> U(1)\nT has form = function",
+        result: "The same T can be referenced by several checks or declarations.", tone: "pass", source: "test_type_node.py",
+        nodes: [
+          node("t", "T", "TypeNode: function", 400, 100, "Stores its parameter, domain, and codomain. This describes a type, not an executable function.", "type"),
+          node("x", "x", "Variable", 150, 290, "A binder so the codomain can refer to the input when the function type is dependent."),
+          node("u1", "U(1)", "Universe", 630, 290, "Both domain and codomain point to this same Universe node.", "type")
+        ],
+        edges: [edge("t", "x", "variable"), edge("t", "u1", "domain / codomain")]
+      },
+      {
+        short: "Lambda", title: "The Lambda describes what to do.", stage: "Existing single-parameter Lambda",
+        explanation: "The parameter is x, its domain is U(1), and the body refers to x. The function returns its argument. This is different from the TypeNode describing its type.",
+        notation: "identity = lambda (x : U(1)). x\nHasType [identity, T]",
+        result: "PASS: identity has type (x : U(1)) -> U(1).", tone: "pass", source: "demo.py",
+        nodes: [
+          ...identityNodes(),
+          node("t", "T", "TypeNode: function", 650, 305, "The explicit type description supplied to the HasType Relation.", "type"),
+          node("r", "HasType", "Relation", 120, 305, "Checks the Lambda against T. A Lambda needs no stored result-type field.", "relation")
+        ],
+        edges: [edge("f", "x", "variable / body"), edge("f", "u1", "domain"), edge("r", "f", "expression"), edge("r", "t", "supplied type")]
+      },
+      {
+        short: "Application", title: "Connect a function to an argument.", stage: "Application structure",
+        explanation: "Application has just two connections: function and argument. This node describes identity U(0). Its structure does not need a stored type or result.",
+        notation: "a = Apply(identity, U(0))\nHasType [a, U(1)]",
+        result: "PASS: U(0) matches identity's parameter type U(1).", tone: "pass", source: "demo.py",
+        nodes: [
+          node("app", "a", "Application", 400, 100, "An intermediate expression. It has function and argument fields, not a type field."),
+          node("f", "identity", "Lambda", 155, 285, "The function from the previous step."),
+          node("u0", "U(0)", "Universe", 645, 285, "The argument is itself a type object. Types can be passed to functions.", "type")
+        ],
+        edges: [edge("app", "f", "function"), edge("app", "u0", "argument")]
+      },
+      {
+        short: "Beta step", title: "Check a supplied computation result.", stage: "One beta reduction",
+        explanation: "Applying identity substitutes U(0) for x in its body. BetaReduces checks that supplied result. It does not modify the original Lambda or evaluate every remaining expression.",
+        notation: "(lambda x. x) U(0) -> U(0)\nBetaReduces [a, U(0)]",
+        result: "PASS: this is exactly one beta step. HasType is a separate check.", tone: "pass", source: "demo.py",
+        nodes: [
+          node("r", "BetaReduces", "Relation", 400, 105, "Checks the application and the proposed result. A true result is not written back into the graph.", "relation"),
+          node("app", "identity U(0)", "Application", 170, 285, "The source expression. It remains stored after the check."),
+          node("u0", "U(0)", "Supplied result", 630, 285, "The existing result node supplied by the programmer or builder.", "type")
+        ],
+        edges: [edge("r", "app", "first input"), edge("r", "u0", "second input"), edge("app", "u0", "one checked step", {computation: true})]
+      },
+      {
+        short: "Wrong type", title: "A graph can contain a false claim.", stage: "Rejected typing relationship",
+        explanation: "The same application has type U(1), not U(2). Creating the Relation states a claim; it does not make the claim true. Commit checks Layer 0 structure, and require checks this Relation.",
+        notation: "HasType [identity U(0), U(2)]",
+        result: "REJECTED: the expression does not have the supplied type.", tone: "reject", source: "demo.py",
+        nodes: [
+          node("r", "HasType", "Relation: fails", 400, 100, "The graph can store this test claim, but requiring it fails.", "relation failed"),
+          node("app", "identity U(0)", "Application", 170, 285, "This is exactly the same application, not a new behavior."),
+          node("u2", "U(2)", "Wrong supplied type", 630, 285, "A valid Universe node can still be the wrong type for this expression.", "type")
+        ],
+        edges: [edge("r", "app", "expression"), edge("r", "u2", "supplied type")]
+      },
+      {
+        short: "Dependency", title: "The argument changes a type.", stage: "Dependent application",
+        explanation: "The outer function returns an inner identity function. Supplying U(0) for A changes both the inner domain and codomain. Its type is a function-form TypeNode.",
+        notation: "poly = lambda A : U(1).\n         lambda x : A. x\npoly U(0) : (x : U(0)) -> U(0)",
+        result: "PASS: substitution preserves binding and the declared type structure.", tone: "pass", source: "demo.py",
+        nodes: [
+          node("app", "poly U(0)", "Application", 160, 100, "The source computes a function. No special ApplicationType node is needed."),
+          node("r", "HasType", "Relation", 640, 100, "Checks against the specialized type supplied explicitly.", "relation"),
+          node("inner", "lambda x. x", "Lambda: domain U(0)", 160, 300, "The proposed beta result. Its domain is now U(0)."),
+          node("t", "U(0) -> U(0)", "TypeNode: function", 640, 300, "The type of the returned function, after substituting A := U(0).", "type")
+        ],
+        edges: [edge("r", "app", "expression"), edge("r", "t", "supplied type"), edge("app", "inner", "checked beta result", {computation: true})]
+      },
+      {
+        short: "AND / OR", title: "Same children. Different combination.", stage: "Common relation logic",
+        explanation: "An ordinary Relation owns the combination. HasType(U(0), U(1)) holds; HasType(U(0), U(2)) fails. Change AND to OR below to see how the common logic combines these results.",
+        notation: "", result: "", tone: "reject", source: "composition_demo.py", logic: true,
+        nodes: [
+          node("parent", "R", "Relation", 400, 85, "Only inputs and decomposition are stored on this parent. No All or Any kind exists.", "relation"),
+          node("group", "RelationAnd", "Combination", 400, 205, "The operator is stored here, once. Its child operands are Relations.", "relation"),
+          node("yes", "HasType [U0,U1]", "Child Relation: true", 170, 350, "A correctly typed Universe claim.", "relation"),
+          node("no", "HasType [U0,U2]", "Child Relation: false", 630, 350, "A well-formed false alternative. An execution error would instead propagate.", "relation failed")
+        ],
+        edges: [edge("parent", "group", "decomposition"), edge("group", "yes", "operand 1"), edge("group", "no", "operand 2")]
+      },
+      {
+        short: "Inductive", title: "Constructors live in a Context.", stage: "Inductive declaration",
+        explanation: "InductiveBody points to the Context declaring zero and succ. Those constructor identities are Variable nodes with declared typing Relations. ValidInductive checks their signatures together.",
+        notation: "MyNat : U(0)\nzero : MyNat\nsucc : MyNat -> MyNat",
+        result: "PASS: the declaration is well-formed with direct positive recursion.", tone: "pass", source: "inductive_demo.py",
+        nodes: [
+          node("d", "MyNat", "Inductive", 150, 95, "Defines a nominal type identity, Parameters, declared type, Context, and body."),
+          node("body", "InductiveBody", "Constructor rules", 405, 215, "This node's Context identifies the permitted constructor declarations."),
+          node("ctx", "C", "Constructor Context", 660, 95, "Owns zero and succ and links to the inductive definition.", "context"),
+          node("zero", "zero", "Variable declaration", 150, 300, "No separate Constructor node kind is needed. Declared type: MyNat."),
+          node("succ", "succ", "Variable declaration", 660, 300, "Declared type: MyNat -> MyNat. Recursive references point to the same nominal identity.")
+        ],
+        edges: [edge("d", "body", "body"), edge("body", "ctx", "context"), edge("ctx", "zero", "declares", {bend: 130}), edge("ctx", "succ", "declares"), edge("ctx", "d", "definition", {bend: -46})]
+      },
+      {
+        short: "Use & limits", title: "Construct a value. Do not invent rules.", stage: "Constructor application / boundaries",
+        explanation: "succ zero has type MyNat. Replacing zero with a MyBool constructor is rejected. We have implemented construction checks, not case analysis or induction. The proposed Lambda Parameters/LambdaBody structure is still design-only.",
+        notation: "succ zero : MyNat       PASS\nsucc MyBool.true : MyNat REJECT\n\nmatch / induction: not implemented",
+        result: "More tests support the current fragment, not every Lean feature. Prop migration and shared-graph optimization remain pending.", tone: "boundary", source: "inductive_demo.py",
+        nodes: [
+          node("app", "succ zero", "Application", 400, 100, "The existing Application node handles constructor use as well as Lambda use."),
+          node("succ", "succ", "Variable: constructor", 145, 280, "A validated constructor with a function type, not a Lambda body."),
+          node("zero", "zero", "Variable: constructor", 400, 280, "The supplied argument has type MyNat."),
+          node("t", "MyNat", "TypeNode: variable", 660, 280, "A type reference to the introduced identity. HasType validates its inductive declaration.", "type")
+        ],
+        edges: [edge("app", "succ", "function"), edge("app", "zero", "argument")]
+      }
+    ];
+
+    const get = id => document.getElementById(id);
+    let current = 0;
+    let selected = null;
+    let timer = null;
+    let logic = "and";
+    const interval = 4500;
+
+    function svgElement(tag, attributes = {}, text = "") {
+      const element = document.createElementNS(ns, tag);
+      for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
+      if (text) element.textContent = text;
+      return element;
+    }
+
+    function selectNode(id) {
+      const entry = scenes[current].nodes.find(item => item.id === id);
+      if (!entry) throw new Error("Unknown illustration node");
+      selected = id;
+      const combination = scenes[current].logic && id === "group";
+      get("node-name").textContent = combination
+        ? (logic === "and" ? "RelationAnd" : "RelationOr") : entry.label;
+      get("node-details").textContent = combination
+        ? (logic === "and" ? "Every child Relation must hold." : "At least one child Relation must hold.")
+        : entry.detail;
+      for (const group of get("nodes").children) {
+        group.classList.toggle("selected", group.dataset.node === selected);
+      }
+    }
+
+    function draw(scene) {
+      const positions = new Map(scene.nodes.map(item => [item.id, item]));
+      get("edges").replaceChildren();
+      get("nodes").replaceChildren();
+      for (const link of scene.edges) {
+        const a = positions.get(link.from);
+        const b = positions.get(link.to);
+        if (!a || !b) throw new Error("An illustration link refers to a missing node");
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const distance = Math.hypot(dx, dy);
+        const ux = dx / distance, uy = dy / distance;
+        const startDistance = Math.min(87 / (Math.abs(ux) || 1e-6), 33 / (Math.abs(uy) || 1e-6));
+        const endDistance = Math.min(92 / (Math.abs(ux) || 1e-6), 38 / (Math.abs(uy) || 1e-6));
+        const x1 = a.x + ux * startDistance, y1 = a.y + uy * startDistance;
+        const x2 = b.x - ux * endDistance, y2 = b.y - uy * endDistance;
+        const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2 + (link.bend || 0);
+        const path = svgElement("path", {
+          d: link.bend ? `M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}` : `M${x1} ${y1} L${x2} ${y2}`,
+          class: link.computation ? "edge computation" : "edge",
+          "aria-hidden": "true"
+        });
+        get("edges").append(path);
+        get("edges").append(svgElement("text", {
+          x: cx, y: (y1 + y2) / 2 + (link.bend || 0) / 2 - 9,
+          "text-anchor": "middle", class: "edge-label", "aria-hidden": "true"
+        }, link.label));
+      }
+      for (const entry of scene.nodes) {
+        const group = svgElement("g", {
+          transform: `translate(${entry.x} ${entry.y})`,
+          class: `node ${entry.tone}`, tabindex: "0", role: "button",
+          "aria-label": `Inspect ${entry.label}: ${entry.kind}`, "data-node": entry.id
+        });
+        group.append(svgElement("rect", {x: -87, y: -33, width: 174, height: 66, rx: 11}));
+        group.append(svgElement("text", {y: -3}, entry.label));
+        group.append(svgElement("text", {y: 18, class: "kind"}, entry.kind));
+        group.addEventListener("click", () => selectNode(entry.id));
+        group.addEventListener("keydown", event => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            selectNode(entry.id);
+          }
+        });
+        get("nodes").append(group);
+      }
+    }
+
+    function render() {
+      const scene = scenes[current];
+      document.body.dataset.step = String(current);
+      get("counter").textContent = `Step ${current + 1} of ${scenes.length}`;
+      get("step-title").textContent = scene.title;
+      get("explanation").textContent = scene.explanation;
+      get("stage-label").textContent = scene.stage;
+      get("notation").textContent = scene.notation;
+      get("result").textContent = scene.result;
+      get("result").dataset.tone = scene.tone;
+      get("source").textContent = scene.source;
+      get("source").setAttribute("href", scene.source);
+      get("logic-controls").hidden = !scene.logic;
+      draw(scene);
+      if (scene.logic) {
+        const isAnd = logic === "and";
+        const values = [true, false];
+        const holds = isAnd ? values.every(Boolean) : values.some(Boolean);
+        const label = isAnd ? "RelationAnd" : "RelationOr";
+        const group = get("nodes").querySelector('[data-node="group"]');
+        group.querySelector("text").textContent = label;
+        group.setAttribute("aria-label", `Inspect ${label}: Combination`);
+        get("notation").textContent = `R -> ${label}\n    true child\n    false child`;
+        get("result").textContent = holds
+          ? "PASS: OR needs one true child. The false alternative is allowed."
+          : "REJECTED: AND requires both children to hold.";
+        get("result").dataset.tone = holds ? "pass" : "reject";
+        document.body.dataset.logic = logic;
+        for (const choice of ["and", "or"]) {
+          get(`choose-${choice}`).setAttribute("aria-pressed", String(choice === logic));
+        }
+      }
+      get("graph-description").textContent = `${scene.explanation} ${get("result").textContent}`;
+      selectNode(scene.nodes[0].id);
+      get("progress").value = String(current);
+      get("progress").setAttribute("aria-valuetext", `Step ${current + 1}: ${scene.short}`);
+      get("back").disabled = current === 0;
+      get("next").disabled = current === scenes.length - 1;
+      for (const button of get("timeline").children) {
+        const index = Number(button.dataset.go);
+        button.classList.toggle("past", index < current);
+        button.classList.toggle("current", index === current);
+        if (index === current) button.setAttribute("aria-current", "step");
+        else button.removeAttribute("aria-current");
+      }
+    }
+
+    function pause() {
+      if (timer !== null) clearInterval(timer);
+      timer = null;
+      document.body.dataset.playing = "false";
+      get("play").textContent = "Play";
+      get("play").setAttribute("aria-label", "Play animation");
+    }
+
+    function goTo(index) {
+      current = Math.max(0, Math.min(scenes.length - 1, index));
+      render();
+    }
+
+    function play() {
+      if (timer !== null) return;
+      if (current === scenes.length - 1) goTo(0);
+      document.body.dataset.playing = "true";
+      get("play").textContent = "Pause";
+      get("play").setAttribute("aria-label", "Pause animation");
+      timer = setInterval(() => {
+        goTo(current + 1);
+        if (current === scenes.length - 1) pause();
+      }, interval);
+    }
+
+    for (const [index, scene] of scenes.entries()) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.go = String(index);
+      button.textContent = `${String(index + 1).padStart(2, "0")}  ${scene.short}`;
+      button.setAttribute("aria-label", `Step ${index + 1}: ${scene.short}`);
+      button.addEventListener("click", () => { pause(); goTo(index); });
+      get("timeline").append(button);
+    }
+    for (const choice of ["and", "or"]) {
+      get(`choose-${choice}`).addEventListener("click", () => {
+        pause(); logic = choice; render(); selectNode("group");
+      });
+    }
+    get("play").addEventListener("click", () => timer === null ? play() : pause());
+    get("restart").addEventListener("click", () => { pause(); logic = "and"; goTo(0); });
+    get("back").addEventListener("click", () => { pause(); goTo(current - 1); });
+    get("next").addEventListener("click", () => { pause(); goTo(current + 1); });
+    get("progress").addEventListener("input", event => { pause(); goTo(Number(event.target.value)); });
+    document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); });
+    const motionPreference = matchMedia("(prefers-reduced-motion: reduce)");
+    motionPreference.addEventListener("change", event => { if (event.matches) pause(); });
+    render();
+    if (!motionPreference.matches) play();
+  </script>
+</body>
+</html>

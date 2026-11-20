@@ -1,4 +1,4 @@
-"""Run with python3 layer0_demo.py."""
+"""Run from the repository root with python3 -m layer0.layer0_demo."""
 
 from layer0 import Graph, IncomingRootLinkError, UnknownNodeError, UnreachableNodesError
 
