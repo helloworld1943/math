@@ -1,6 +1,6 @@
 import unittest
 
-from layer0 import GraphSnapshot, Node, UnknownNodeError
+from node import GraphSnapshot, Node, UnknownNodeError
 
 from . import (
     CheckLimitError,

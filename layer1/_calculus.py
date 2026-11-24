@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TypeAlias
 
-from layer0 import Node
+from node import Node
 
 
 class TypeCheckError(ValueError):

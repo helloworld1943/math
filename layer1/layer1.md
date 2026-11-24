@@ -16,8 +16,9 @@ and fixed Relation kinds so we can actually test the expressions:
 The node meanings are in [nodetype.md](./nodetype.md).
 
 For a visual explanation, open [animation.html](./animation.html) in a browser.
-It is a standalone, roughly 40-second walkthrough with play/pause, back/next,
-step selection, clickable nodes, and an AND/OR comparison. No server or
+It is a standalone walkthrough with 36 cases in seven topics, taking about
+two and a half minutes for full playback. It has topic jumps, case search,
+play/pause, back/next, step selection, clickable nodes, and an AND/OR comparison. No server or
 external packages are needed. The animation distinguishes currently implemented
 examples from design-only changes; it does not run the Python checker in the
 browser. Reduced-motion preferences disable autoplay.
@@ -921,25 +922,113 @@ checking rules. Two initial fixtures were corrected: one reused an enclosing
 binder identity, and one supplied a type at the wrong universe level. Both
 were invalid under the chosen rules, not reasons to relax checking.
 
-[animation.html](./animation.html) explains the existing examples in ten steps:
+[animation.html](./animation.html) now explains 36 cases, grouped into:
 
-1. Universe typing.
-2. A function-form TypeNode as a type description.
-3. A Lambda and its parameter/body connections.
-4. Application without a stored result type.
-5. A single checked beta step.
-6. Rejection of a wrong supplied type.
-7. Dependent substitution into a result type.
-8. Common RelationAnd/RelationOr evaluation.
-9. InductiveBody and constructor Contexts.
-10. Constructor applications and the remaining boundaries.
+| Topic | Cases | Examples |
+|---|---|---|
+| Basics | 7 | Universe, type description, Lambda, application, beta step, wrong type, dependent substitution |
+| Functions and types | 7 | Type-variable and application forms, composition, repeated application, alpha/eta equality, private variables |
+| Encoded data | 6 | Boolean selection/negation, numeral three, addition, multiplication, pair projections |
+| Encoded logic | 4 | Universal quantification, existential-style packaging/elimination, equality transport |
+| Relations | 3 | AND/OR comparison, shared child checks, false versus execution error |
+| Inductives | 6 | Constructor Context, Box, recursive list, dependent fields, wrong arguments, nominal identities |
+| Boundaries | 3 | Negative recursion, constructor-field universe limits, pending features |
+
+Each case links to an existing example or test file. Topic buttons jump
+directly to a group; searching narrows the case picker without changing the
+graph. Press Enter in the search field to open its first matching case.
+The full playback advances through every case and stops at the end.
 
 The drawings omit marker and slot helpers and some auxiliary declaration
-information. They describe the implemented graph concepts, not a complete
-serialized graph. Dashed arrows show checked computation, not mutations of
-the original nodes.
+information, and may summarize longer stored paths. They describe the
+implemented graph concepts, not a complete serialized graph. Dashed arrows
+show checked computation, not mutations of the original nodes.
 
 Universe/Prop indexing changes, the Lambda Parameters/LambdaBody migration,
 case analysis, indices, and the shared-graph performance improvement remain
 separate work. The added tests do not establish that Layer 1 is finished or
 formally sound.
+
+## 15. Generated comparisons against Lean
+
+The next comparison is in [conformance.py](./conformance.py), with tests in
+[test_conformance.py](./test_conformance.py). It generates 111 typing claims:
+
+| Family | Claims |
+|---|---|
+| Universe-level checks | 20 |
+| Bound-variable projections at depths 1 through 5 | 30 |
+| Polymorphic projections with dependent parameter types | 20 |
+| Type families with one, two, or three arguments, including wrong indices | 14 |
+| Eta-expanded functions and deliberately different functions | 4 |
+| Lambda encodings of local let chains | 5 |
+| Function-type universe maxima and incorrect levels | 18 |
+
+The expected results are specified by the fixtures, not copied from the
+checker: 48 claims should be accepted and 63 rejected.
+
+```sh
+python3 -m layer1.conformance
+python3 -m layer1.conformance --lean
+python3 -m unittest -v layer1.test_conformance layer1.test_signature_cases
+```
+
+The first command checks only Layer 1. The second additionally invokes the
+already installed Lean 4.35.0 toolchain.
+The ordinary Python tests do not require Lean.
+
+### How the comparison works
+
+The fixture builder creates graph expressions through the public API.
+Layer 1 checks their HasType Relations.
+
+A separate renderer reads the graph's expression roles and emits Lean
+Lambda, dependent function type, application, and universe syntax. It does
+not call the internal Python type inference or normalizer to produce the
+Lean source. Bound references are rendered with names based on binding
+positions, not optional display names.
+
+Lean checks an `example` for every expected accepted claim. For each expected
+rejected claim, it checks that the attempted declaration fails using
+`fail_if_success`. No `sorry` or assumed result is used.
+The generated source is passed directly to the local Lean compiler's stdin;
+no temporary exported file or external service is needed.
+
+Both Layer 1 and Lean passed the same 111 acceptance/rejection assertions.
+This is stronger than checking a few unrelated examples, but it is still a
+finite comparison, not a soundness proof or a complete Lean translator.
+
+The renderer currently covers only closed expressions in the shared
+predicative fragment. It maps current `U(n)` to Lean `Type n`. It does not
+export arbitrary user programs, inductive declarations, the planned
+Sort/Prop indexing, or Context assumptions.
+
+### More constructor signatures
+
+[test_signature_cases.py](./test_signature_cases.py) adds eight further tests:
+
+- A constructor storing a non-recursive dependent function.
+- Rejecting a plain value supplied to that function field.
+- A binary tree constructor with two direct positive recursive fields.
+- A constructor storing a type when its result universe is large enough.
+- A zero-field constructor with a shared function-valued parameter.
+- Rejecting a value used as a constructor field's type.
+- Rejecting negative recursion even when a beta-reduced alias describes
+  the negative function domain.
+- Rejecting a constructor returning a different nominal type.
+
+[signature_examples.lean](./signature_examples.lean) independently checks
+the supported declarations and selected invalid uses:
+
+```sh
+elan run leanprover/lean4:v4.35.0 lean layer1/signature_examples.lean
+```
+
+The computed negative-recursion declaration was also checked against Lean
+separately at a universe large enough to avoid a size error. Lean rejected
+it for a non-positive occurrence, matching the Layer 1 rejection.
+
+These cases required no change to the production checker. The shared-graph
+performance limitation remains deliberately untouched. Full case analysis,
+indexed inductives, the Lambda Parameters/LambdaBody migration, and the
+Sort/Prop migration are not implied by these successful comparisons.

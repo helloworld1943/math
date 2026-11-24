@@ -1,7 +1,7 @@
 import unittest
 from types import MappingProxyType
 
-from layer0 import GraphSnapshot, IncomingRootLinkError, Node, UnknownNodeError
+from node import GraphSnapshot, IncomingRootLinkError, Node, UnknownNodeError
 
 from . import CheckLimitError, EncodingError, Program, Snapshot, TypeCheckError
 

@@ -978,6 +978,20 @@ and function-type integration with this Parameters structure remains future work
 
 ## 12. Lambda, function-form TypeNode, and Application
 
+### Diagram: Lean universal quantification
+
+Lean's `∀ x : A, P x` is the dependent function type `(x : A) → P x`.
+It uses a function-form TypeNode with a bound Variable and an application-form
+codomain pointing to the ordinary Application `P x`.
+
+![Universal quantification using Layer 1 node types](./diagrams/forall.svg)
+
+This drawing shows the intended Context-backed design with
+`Universe(0) = Prop`, not a claim that the current Python checker has completed
+those migrations. A and P's declarations, some Context links, and internal
+encoding helpers are collapsed for clarity. The proposition is a type
+description; proving it requires a separate expression checked against it.
+
 These have different roles:
 
 ```text
@@ -1241,6 +1255,12 @@ fragment. Layer 0 and the shared-graph performance limitation are unchanged.
 
 See [inductive.md](./inductive.md) for complete examples, implementation
 details, and the independent Lean counterparts.
+
+For additional evidence about the implemented fragment, the
+[generated conformance checks](./layer1.md#15-generated-comparisons-against-lean)
+test 111 accepted/rejected claims in Layer 1 and Lean, plus new constructor
+signatures. These tests do not change the node design or implement the
+features still listed below.
 
 ## 15. What we still need to decide
 

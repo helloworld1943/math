@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nod - indexed outputs and inputs</title>
+  <style>
+    :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #20302e; background: #f5f4ee; --muted: #64716d; --line: #dedfd5; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, [role="button"]:focus-visible { outline: 3px solid #e29a32; outline-offset: 4px; }
+    .page { max-width: 1240px; margin: auto; padding: 32px 28px; }
+    header { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+    .eyebrow { margin: 0 0 10px; color: #157664; font-size: 12px; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; }
+    h1 { margin: 0 0 12px; font-size: clamp(29px, 4vw, 42px); letter-spacing: -.04em; font-weight: 650; }
+    .intro { margin: 0; color: var(--muted); line-height: 1.65; max-width: 770px; font-size: 14px; }
+    .guide { color: #3d5952; white-space: nowrap; font-size: 13px; padding-top: 9px; text-underline-offset: 4px; }
+    .case-tools, .controls, .tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+    .case-tools { margin: 17px 0; }
+    .case-tools label { font-size: 12px; color: var(--muted); }
+    .case-tools select { flex: 1; min-width: 180px; }
+    .controls { flex: 2; min-width: min(100%, 430px); }
+    button, select { border: 1px solid #cfd7cb; color: #3b5547; background: #fafaf5; border-radius: 7px; padding: 9px 11px; font-size: 12px; }
+    button:disabled { opacity: .4; cursor: default; }
+    button.primary, .tabs button[aria-pressed="true"] { background: #25604b; border-color: #25604b; color: white; }
+    .progress { flex: 1; min-width: 60px; accent-color: #157664; }
+    .duration { font-size: 11px; color: var(--muted); }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 325px; gap: 23px; }
+    .tabs { margin-bottom: 10px; }
+    .diagram-options { margin-left: auto; font-size: 11px; color: var(--muted); }
+    .stage { border-radius: 18px; overflow: hidden; background: #142a2a; }
+    .stage-top, .stage-bottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 15px 19px 0; color: #b7c8be; font-size: 11px; }
+    .stage-bottom { justify-content: flex-start; padding: 0 19px 15px; }
+    .array-top { padding: 16px 19px 0; }
+    .array-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 7px; color: #b7c8be; font-size: 11px; }
+    .order-strip { list-style: none; display: flex; flex-wrap: wrap; gap: 9px 0; padding: 0; margin: 12px 0 0; }
+    .order-strip li { min-width: 50px; width: 58px; text-align: center; font: 11px ui-monospace, monospace; }
+    .array-index { display: block; padding-bottom: 5px; color: #adc1bb; font-size: 10px; }
+    .array-value { display: block; padding: 10px 5px; border: 1px solid #678779; border-right: 0; background: #213d38; color: #e8f4eb; white-space: nowrap; }
+    .order-strip li:first-child .array-value { background: #235a48; }
+    .order-strip li:last-child .array-value { border-right: 1px solid #678779; }
+    .badge { display: inline-flex; border: 1px solid #4d6962; border-radius: 20px; padding: 6px 9px; color: #cee3d9; font-size: 10px; font-weight: 700; }
+    .badge[data-tone="error"] { color: #ffb1a1; border-color: #8d5b50; }
+    svg { display: block; width: 100%; height: auto; }
+    .edge { fill: none; stroke-width: 2; }
+    .edge.new-link { stroke-dasharray: 7 6; animation: flow 1.6s linear infinite; }
+    .edge.removed-link { stroke-dasharray: 3 6; opacity: .45; }
+    .edge.rejected-link, .edge.empty-link { stroke-dasharray: 5 5; }
+    body[data-playing="false"] .edge.new-link { animation-play-state: paused; }
+    .edge-label rect { fill: #18322e; stroke: #6b9280; }
+    .edge-label text { fill: #d8edde; text-anchor: middle; font: 11px ui-monospace, monospace; }
+    .edge-label.amber rect { stroke: #f2bf75; } .edge-label.amber text { fill: #f2bf75; }
+    .edge-label.error rect { stroke: #d99b87; } .edge-label.error text { fill: #efb39f; }
+    .node { cursor: pointer; }
+    .node circle { fill: #235a48; stroke: #98e3be; stroke-width: 1.8; }
+    .node.selected circle { stroke-width: 3.5; }
+    .node.has-empty circle { fill: #42472e; stroke: #d8c98c; }
+    .node.new-node circle { stroke: #f2bf75; }
+    .node.removed-node { opacity: .5; }
+    .node.removed-node circle { fill: #352d2b; stroke: #d99b87; stroke-dasharray: 4 5; }
+    .node.rejected-node circle { stroke: #f0a08c; stroke-width: 3; }
+    .node text { fill: #e8f4eb; text-anchor: middle; font: 15px ui-monospace, monospace; }
+    .node .external-name { font-size: 10px; }
+    .node .number { fill: #aec8ba; font-size: 10px; }
+    .dot { display: inline-block; width: 7px; height: 7px; margin-right: 5px; background: #98e3be; border-radius: 50%; }
+    .dot.amber { background: #edbd76; } .dot.red { background: #e9a38b; }
+    .under-graph, .change-note { color: var(--muted); line-height: 1.6; font-size: 11px; margin: 10px 3px; }
+    .change-note { color: #3d6652; font-size: 12px; }
+    .readiness { margin: 12px 0; padding: 11px 13px; border-radius: 9px; background: #e5eee1; color: #315d47; font-size: 12px; line-height: 1.6; }
+    .readiness[data-tone="error"] { background: #f6e4da; color: #8f4434; }
+    .node.needs-zero circle { stroke: #f0a08c; }
+    .readouts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 11px; }
+    .readout { padding: 14px; border: 1px solid var(--line); border-radius: 11px; background: #fafaf4; }
+    .readout h3 { margin: 0 0 10px; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; font-size: 11px; color: var(--muted); line-height: 1.6; }
+    .chip { font: 11px ui-monospace, monospace; background: #e4eee2; color: #315d47; border-radius: 5px; padding: 5px 7px; }
+    .inspector { grid-column: 1 / -1; }
+    .inspector-head, .slot-query { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 10px; }
+    .inspector-head label, .slot-query label { color: var(--muted); font-size: 12px; }
+    select { max-width: 100%; }
+    .query-heading { margin: 16px 0 10px; font-size: 12px; color: #496458; }
+    .slot-query { justify-content: flex-start; margin: 10px 0; }
+    .target-result { padding: 9px; border: 1px solid #d2dece; border-radius: 6px; font: 12px ui-monospace, monospace; color: #315d47; }
+    .input-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 7px; }
+    .input-list li { border: 1px solid #d2dece; border-radius: 6px; padding: 8px; max-width: 100%; overflow-wrap: anywhere; font: 11px ui-monospace, monospace; color: #315d47; line-height: 1.6; }
+    .input-list button { padding: 0; border: 0; background: transparent; text-decoration: underline; text-underline-offset: 3px; font: inherit; }
+    .story { min-width: 0; }
+    .step-count { color: #157664; font-size: 12px; font-weight: 700; margin: 3px 0 12px; }
+    h2 { font-size: 25px; letter-spacing: -.025em; line-height: 1.25; margin: 0 0 13px; }
+    .explanation { color: #596961; line-height: 1.7; font-size: 14px; margin-bottom: 18px; }
+    .code-card { border: 1px solid var(--line); background: #fffef9; border-radius: 11px; overflow: hidden; }
+    .code-label { border-bottom: 1px solid #e8e8df; padding: 10px 13px; font-size: 10px; color: var(--muted); text-transform: uppercase; }
+    pre { margin: 0; padding: 14px; overflow: auto; font-size: 12px; line-height: 1.8; color: #285348; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .result { margin-top: 12px; padding: 12px; border-radius: 9px; background: #e6ebe2; font-size: 12px; line-height: 1.65; color: #3e5b4c; }
+    .result[data-tone="error"] { color: #8f4434; background: #f6e4da; }
+    .setup, .evidence { margin-top: 13px; font-size: 11px; color: #596961; line-height: 1.6; }
+    .setup summary { cursor: pointer; } .setup pre { max-height: 240px; background: #fffef9; }
+    .evidence code { overflow-wrap: anywhere; }
+    input[type="search"] { flex: 1; min-width: 140px; border: 1px solid #cfd7cb; border-radius: 7px; padding: 10px; background: #fffef9; }
+    .timeline { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; max-height: 390px; overflow: auto; padding: 4px; }
+    .timeline h3 { grid-column: 1 / -1; margin: 14px 0 2px; color: #3d6652; font-size: 12px; }
+    .timeline button { text-align: left; min-height: 50px; border-left: 3px solid #93b79b; line-height: 1.5; }
+    .timeline button[data-outcome="rejected"] { border-left-color: #c48470; }
+    .timeline button.current { border-color: #2f7754; color: #214f39; font-weight: 700; }
+    .explorer { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--line); }
+    .explorer p { color: #596961; font-size: 13px; line-height: 1.65; }
+    .small-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; }
+    .matrix { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; align-items: center; margin-bottom: 14px; }
+    .matrix > span { font-size: 11px; text-align: center; color: var(--muted); }
+    .matrix label { display: grid; place-items: center; border: 1px solid #d0d9cd; border-radius: 6px; min-height: 38px; background: #fffef9; }
+    .matrix label.root-output { border-color: #ddb7aa; background: #fbefea; }
+    .matrix input { width: 17px; height: 17px; cursor: pointer; accent-color: #25604b; }
+    .small-controls { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; font-size: 12px; }
+    .small-controls input { width: 74px; padding: 7px; border: 1px solid #cfd7cb; border-radius: 6px; }
+    .small-error { color: #8f4434; min-height: 18px; }
+    footer { margin-top: 22px; padding-top: 15px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; line-height: 1.8; }
+    @keyframes flow { to { stroke-dashoffset: -26; } }
+    @media (max-width: 880px) { .layout, .small-layout { grid-template-columns: minmax(0, 1fr); } .story { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 18px; } .narrative { grid-row: span 2; } .evidence, .setup { grid-column: 1 / -1; } .small-panel { max-width: 470px; } }
+    @media (max-width: 540px) { .page { padding: 24px 16px; } header { display: block; } .guide { display: inline-block; margin-top: 7px; } .story { display: block; } .readouts { grid-template-columns: minmax(0, 1fr); } .timeline { grid-template-columns: minmax(0, 1fr); } .diagram-options { margin-left: 0; } .duration { display: none; } .stage-top { padding: 12px 13px 0; } .array-top { padding: 14px 13px 0; } .order-strip li { width: 52px; } .stage-bottom { padding: 0 13px 13px; font-size: 10px; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+  </style>
+</head>
+<body data-playing="false">
+  <main class="page">
+    <header>
+      <div>
+        <p class="eyebrow">Nod / the node foundation</p>
+        <h1>One output at a time.</h1>
+        <p class="intro">Read a target with get_output(node, n), its fixed slot count, or its incoming connections.<br>Every non-root output 0 must be connected before commit. Later outputs may be empty. Bound targets must be distinct per source and earlier in the array.</p>
+      </div>
+      <a class="guide" href="readme.md">Read the rules</a>
+    </header>
+    <div class="case-tools case-navigation">
+      <label for="case-picker">Case</label><select id="case-picker" aria-label="Jump to a graph case"></select>
+      <div class="controls" aria-label="Animation playback">
+        <button id="restart" type="button" aria-label="Restart animation">Restart</button><button id="previous" type="button" aria-label="Previous case">Back</button>
+        <button id="play" class="primary" type="button">Play</button><button id="next" type="button" aria-label="Next case">Next</button>
+        <input id="progress" class="progress" type="range" min="0" max="0" value="0" step="1" aria-label="Jump to animation step"><span class="duration" id="case-total"></span>
+      </div>
+    </div>
+    <div class="layout">
+      <div>
+        <div class="tabs" aria-label="Graph state"><button type="button" id="before" aria-pressed="false">Before</button><button type="button" id="after" aria-pressed="true">After</button><button type="button" id="committed" aria-pressed="false" disabled>Latest commit</button><label class="diagram-options"><input id="show-removed" type="checkbox" checked> Show previous links</label></div>
+        <div class="stage">
+          <div class="stage-top"><span id="phase" class="badge"></span><span id="next-number"></span><span id="graph-count"></span></div>
+          <div class="array-top"><div class="array-heading"><span>Node array: earlier to later</span><span>Position above / code name and ID below</span></div><ol class="order-strip" id="node-order" aria-label="Node array: positions above code names and IDs"></ol></div>
+          <svg id="graph" viewBox="0 0 760 450" role="group" aria-labelledby="graph-title graph-description"></svg>
+          <div class="stage-bottom"><span><i class="dot"></i>bound target</span><span><i class="dot amber"></i>optional empty / new</span><span><i class="dot red"></i>required empty / previous / rejected</span></div>
+        </div>
+        <div class="readiness" id="readiness" aria-live="polite"></div><p class="change-note" id="change-note"></p>
+        <p class="under-graph">Names a, b, c, and d match the code. ID and pos are separate. A hollow endpoint is an empty slot: red output 0 blocks commit; amber later outputs are optional. Before/After are prepared examples, not history.</p>
+        <div class="readouts">
+          <section class="readout"><h3>Current displayed nodes</h3><div class="chips" id="current-nodes"></div></section>
+          <section class="readout"><h3>Latest successful commit</h3><div class="chips" id="committed-nodes"></div></section>
+          <section class="readout inspector">
+            <div class="inspector-head"><h3 id="selected-node"></h3><label>Node <select id="node-picker" aria-label="Node to inspect"></select></label></div>
+            <h4 class="query-heading">get_output_count(node): <span id="output-count"></span></h4>
+            <div class="slot-query"><label>get_output(node, n): slot <select id="output-number" aria-label="Output slot to read"></select></label><span class="target-result" id="output-target"></span></div>
+            <h4 class="query-heading">inputs(node): source_node_id / output_link_number</h4><ul class="input-list" id="input-list"></ul>
+          </section>
+        </div>
+      </div>
+      <section class="story" aria-live="polite" aria-atomic="true">
+        <div class="narrative"><p class="step-count" id="step-count"></p><h2 id="step-title"></h2><p class="explanation" id="explanation"></p></div>
+        <div class="code-card"><div class="code-label">Python equivalent</div><pre><code id="code"></code></pre></div><div class="result" id="result"></div>
+        <details class="setup"><summary>Show Python setup</summary><pre><code id="setup-code"></code></pre></details>
+        <p class="evidence">Checked against <a href="layer0.py">layer0.py</a> by <a href="test_animation.py">test_animation.py</a>.<br>Related test: <code id="example-test"></code></p>
+      </section>
+    </div>
+    <div class="case-tools"><label for="search">Find a rule</label><input id="search" type="search" placeholder="Try: empty, count, duplicate, inputs..." autocomplete="off"></div><p id="search-count" class="under-graph"></p><nav id="timeline" class="timeline" aria-label="Walkthrough cases"></nav>
+    <section class="explorer" aria-labelledby="explorer-title">
+      <h2 id="explorer-title">All 512 three-node arrow shapes</h2>
+      <p>These independent candidates use the fixed order [root 0, node 1, node 2]. They describe different output counts, not edits that resize nodes. Python checks every verdict: <strong>3 valid, 448 root-output violations, 15 zero-slot non-root violations, 46 order violations</strong>. A node with no slots is not the same as a node with empty slots; the guided examples show valid empty targets.</p>
+      <div class="small-layout">
+        <div class="stage"><div class="stage-top"><span id="small-phase" class="badge"></span><span id="small-count"></span></div><svg id="small-graph" viewBox="0 0 760 450" role="img" aria-labelledby="small-graph-title small-graph-description"></svg></div>
+        <div class="small-panel"><div class="matrix" id="matrix" aria-label="Candidate arrows: row source, column target"></div><div class="small-controls"><label for="small-mask">Graph number</label><input id="small-mask" type="number" min="0" max="511" step="1" value="72"><button id="small-valid" type="button">Valid</button><button id="small-order" type="button">Later target</button><button id="small-root" type="button">Root output</button></div><p class="small-error" id="small-error" role="alert"></p><div id="small-result" class="result" aria-live="polite"></div></div>
+      </div>
+    </section>
+    <footer>Every non-root output 0 must be connected at commit; later slots may remain empty. Queries read the whole draft or snapshot. No restricted views or traversal aliases are provided. Only the latest successful snapshot is retained. Playback starts paused and reduced-motion preferences are respected. Run <code>python3 -m unittest node.test_animation node.test_layer0</code> to verify the examples.<br>See the <a href="readme.md">rules and examples</a> and <a href="../nod/nod.md">Nod starting rules</a>. Layers 1-3 remain paused.</footer>
+    <noscript><p>This animation needs JavaScript. Read the design or run <code>python3 -m node.layer0_demo</code>.</p></noscript>
+  </main>
+  <script id="case-data" type="application/json">
+  {
+    "fixtures": {
+      "root": {"steps":[],"state":{"nextNumber":1,"nodes":{"root":0},"outputs":{"root":[]}}},
+      "born": {"base":"root","steps":[["create","a",1],["create","b",2],["create","c",1]],"state":{"nextNumber":4,"nodes":{"root":0,"a":1,"b":2,"c":3},"outputs":{"root":[],"a":[null],"b":[null,null],"c":[null]}}},
+      "example": {"base":"born","steps":[["edit","a",0,"root"],["edit","b",0,"root"],["edit","b",1,"a"],["edit","c",0,"b"]],"state":{"nextNumber":4,"nodes":{"root":0,"a":1,"b":2,"c":3},"outputs":{"root":[],"a":["root"],"b":["root","a"],"c":["b"]}}},
+      "cleared": {"base":"example","steps":[["edit","b",0,null]],"state":{"nextNumber":4,"nodes":{"root":0,"a":1,"b":2,"c":3},"outputs":{"root":[],"a":["root"],"b":[null,"a"],"c":["b"]}}},
+      "swap-middle": {"base":"cleared","steps":[["edit","b",1,"root"]],"state":{"nextNumber":4,"nodes":{"root":0,"a":1,"b":2,"c":3},"outputs":{"root":[],"a":["root"],"b":[null,"root"],"c":["b"]}}},
+      "swapped": {"base":"swap-middle","steps":[["edit","b",0,"a"]],"state":{"nextNumber":4,"nodes":{"root":0,"a":1,"b":2,"c":3},"outputs":{"root":[],"a":["root"],"b":["a","root"],"c":["b"]}}},
+      "empty-b": {"base":"cleared","steps":[["edit","b",1,null]],"state":{"nextNumber":4,"nodes":{"root":0,"a":1,"b":2,"c":3},"outputs":{"root":[],"a":["root"],"b":[null,null],"c":["b"]}}},
+      "deleted": {"base":"example","steps":[["delete","b"]],"state":{"nextNumber":4,"nodes":{"root":0,"a":1,"c":3},"outputs":{"root":[],"a":["root"],"c":[null]}}},
+      "repaired": {"base":"deleted","steps":[["edit","c",0,"root"]],"state":{"nextNumber":4,"nodes":{"root":0,"a":1,"c":3},"outputs":{"root":[],"a":["root"],"c":["root"]}}},
+      "retargeted": {"base":"example","steps":[["edit","c",0,"a"]],"state":{"nextNumber":4,"nodes":{"root":0,"a":1,"b":2,"c":3},"outputs":{"root":[],"a":["root"],"b":["root","a"],"c":["a"]}}},
+      "without-c": {"base":"example","steps":[["delete","c"]],"state":{"nextNumber":4,"nodes":{"root":0,"a":1,"b":2},"outputs":{"root":[],"a":["root"],"b":["root","a"]}}},
+      "wide": {"base":"example","steps":[["create","d",3],["edit","d",0,"root"],["edit","d",1,"a"],["edit","d",2,"b"]],"state":{"nextNumber":5,"nodes":{"root":0,"a":1,"b":2,"c":3,"d":4},"outputs":{"root":[],"a":["root"],"b":["root","a"],"c":["b"],"d":["root","a","b"]}}},
+      "wide-hole": {"base":"wide","steps":[["delete","a"]],"state":{"nextNumber":5,"nodes":{"root":0,"b":2,"c":3,"d":4},"outputs":{"root":[],"b":["root",null],"c":["b"],"d":["root",null,"b"]}}},
+      "inserted-born": {"base":"example","steps":[["create","d",1,2]],"state":{"nextNumber":5,"nodes":{"root":0,"a":1,"d":4,"b":2,"c":3},"outputs":{"root":[],"a":["root"],"d":[null],"b":["root","a"],"c":["b"]}}},
+      "inserted": {"base":"inserted-born","steps":[["edit","d",0,"a"],["edit","b",1,"d"]],"state":{"nextNumber":5,"nodes":{"root":0,"a":1,"d":4,"b":2,"c":3},"outputs":{"root":[],"a":["root"],"d":["a"],"b":["root","d"],"c":["b"]}}},
+      "insertion-deleted": {"base":"inserted","steps":[["delete","d"]],"state":{"nextNumber":5,"nodes":{"root":0,"a":1,"b":2,"c":3},"outputs":{"root":[],"a":["root"],"b":["root",null],"c":["b"]}}},
+      "reborn": {"base":"example","steps":[["delete","a"],["delete","b"],["delete","c"],["create","d",1],["edit","d",0,"root"]],"state":{"nextNumber":5,"nodes":{"root":0,"d":4},"outputs":{"root":[],"d":["root"]}}},
+      "gap": {"base":"root","steps":[["create","a",1],["create","b",3],["create","c",1],["edit","a",0,"root"],["edit","b",0,"root"],["edit","b",2,"a"],["edit","c",0,"b"]],"state":{"nextNumber":4,"nodes":{"root":0,"a":1,"b":2,"c":3},"outputs":{"root":[],"a":["root"],"b":["root",null,"a"],"c":["b"]}}},
+      "gap-empty": {"base":"gap","steps":[["edit","b",2,null]],"state":{"nextNumber":4,"nodes":{"root":0,"a":1,"b":2,"c":3},"outputs":{"root":[],"a":["root"],"b":["root",null,null],"c":["b"]}}},
+      "nod-labels": {"base":"root","steps":[["create","a",1],["create","b",1],["create","c",1],["create","d",2],["edit","a",0,"root"],["edit","b",0,"a"],["edit","c",0,"a"],["edit","d",0,"root"],["edit","d",1,"a"]],"state":{"nextNumber":5,"nodes":{"root":0,"a":1,"b":2,"c":3,"d":4},"outputs":{"root":[],"a":["root"],"b":["a"],"c":["a"],"d":["root","a"]}}}
+    },
+    "cases": [
+      {"id":"root","chapter":"Indexed reads","title":"Root has zero output slots.","explanation":"Root 0 is first and points to nothing. Its output count is 0, not one empty output.","before":"root","after":"root","steps":[["commit"],["count","root"]],"expectedCount":0,"focus":"root","result":"The root-only graph is valid. get_output(root, 0) would be a nonexistent-slot error.","test":"test_graph_starts_with_root_zero_and_no_outputs"},
+      {"id":"birth","chapter":"Indexed reads","title":"New nodes need output 0 before commit.","explanation":"Create nodes with fixed counts 1, 2, and 1. Empty targets are allowed while editing, but each node's output 0 must be connected before commit.","before":"root","after":"born","steps":[["create","a",1],["create","b",2],["create","c",1],["commit"]],"error":"UnboundOutputError","focus":"b","result":"Commit reports missing output 0 on a, b, and c. The draft remains available for editing; no snapshot was published.","test":"test_commit_requires_output_zero_on_every_non_root_node"},
+      {"id":"get-empty","chapter":"Indexed reads","title":"Read an empty output by its number.","explanation":"Node 2 owns output slots 0 and 1. Reading slot 0 returns None because it exists and currently points to nothing.","before":"born","after":"born","steps":[["get","b",0]],"expectedNode":null,"focus":"b","querySlot":0,"result":"get_output(node2, 0) returns None. No list, distance, or path result is involved.","test":"test_empty_and_nonexistent_slots_have_different_results"},
+      {"id":"count","chapter":"Indexed reads","title":"The output count includes empty slots.","explanation":"Ask how many slots node 2 owns, even though neither target has been connected.","before":"born","after":"born","steps":[["count","b"]],"expectedCount":2,"focus":"b","result":"get_output_count(node2) is 2. Use that count when enumerating slots.","test":"test_non_root_nodes_start_with_fixed_empty_slots"},
+      {"id":"missing-slot","chapter":"Indexed reads","title":"An absent slot is an error, not None.","explanation":"Node 2 has only outputs 0 and 1. Trying to read output 2 raises UnknownLinkError.","before":"born","after":"born","steps":[["get","b",2]],"error":"UnknownLinkError","focus":"b","result":"None is reserved for an existing empty target. It is not a fallback for an invalid output number.","test":"test_empty_and_nonexistent_slots_have_different_results"},
+      {"id":"root-slot","chapter":"Indexed reads","title":"Root has no output 0 to read.","explanation":"Root's count is zero. It has no slot whose target could be None.","before":"root","after":"root","steps":[["get","root",0]],"error":"UnknownLinkError","focus":"root","result":"The fixed root exception is explicit: zero outputs, not an ordinary one-slot node.","test":"test_graph_starts_with_root_zero_and_no_outputs"},
+      {"id":"connect","chapter":"Targets and swaps","title":"Fill slots with earlier information.","explanation":"Connect node 1 to root, node 2 to root and node 1, and node 3 to node 2. All targets are earlier than their source.","before":"born","after":"example","steps":[["edit","a",0,"root"],["edit","b",0,"root"],["edit","b",1,"a"],["edit","c",0,"b"],["commit"]],"focus":"b","querySlot":1,"result":"The same indexed queries work before and after commit.","test":"test_different_sources_and_distinct_targets_may_share_dependencies"},
+      {"id":"later-slot","chapter":"Targets and swaps","title":"Do not stop at an optional empty target.","explanation":"Node b has output 0 to root, an empty output 1, and output 2 to a. Reading the later slot still works, and the graph may be committed.","before":"gap","after":"gap","steps":[["get","b",2]],"expectedNode":"a","focus":"b","querySlot":2,"result":"get_output_count is 3. None in output 1 is not the end of enumeration.","test":"test_getters_enumerate_later_slots_after_an_empty_target"},
+      {"id":"duplicate","chapter":"Targets and swaps","title":"A duplicate target is rejected during editing.","explanation":"Node 2 already has output 0 to root. Changing its output 1 to root would duplicate a nonempty target, so the edit is rejected immediately.","before":"example","after":"example","steps":[["edit","b",1,"root"]],"error":"DuplicateLinkError","attempt":{"source":"b","target":"root","number":1},"focus":"b","querySlot":1,"publishBefore":true,"result":"Both slots retain their old targets. Clear output 0 first if you intend to swap them.","test":"test_duplicate_targets_are_rejected_immediately_without_mutation"},
+      {"id":"same-target","chapter":"Targets and swaps","title":"The same slot may keep the same target.","explanation":"Output 1 already points to node 1. Assigning that same target to that same slot is a no-op, not a duplicate connection.","before":"example","after":"example","steps":[["edit","b",1,"a"]],"focus":"b","querySlot":1,"result":"The fixed count, slot number, target, and incoming record are unchanged.","test":"test_same_target_in_the_same_slot_is_a_no_op"},
+      {"id":"swap-clear","chapter":"Targets and swaps","title":"Swap step 1: clear output 0 while drafting.","explanation":"The edit is allowed and its slot stays fixed. But output 0 is required at commit, so this unfinished swap cannot be published yet.","before":"example","after":"cleared","steps":[["edit","b",0,null],["commit"]],"error":"UnboundOutputError","focus":"b","querySlot":0,"publishBefore":true,"result":"The latest snapshot is unchanged. Complete output 0 before the next successful commit.","test":"test_swap_clears_one_slot_before_retargeting"},
+      {"id":"swap-middle","chapter":"Targets and swaps","title":"Swap step 2: output 1 takes the freed target.","explanation":"The target edit is allowed because output 0 is empty. Binding output 1 does not satisfy the requirement that output 0 itself be bound.","before":"cleared","after":"swap-middle","steps":[["edit","b",1,"root"],["commit"]],"error":"UnboundOutputError","focus":"b","querySlot":1,"result":"Commit still reports b's empty output 0. No slot was removed or renumbered.","test":"test_swap_clears_one_slot_before_retargeting"},
+      {"id":"swap-finish","chapter":"Targets and swaps","title":"Swap step 3: fill output 0 with node 1.","explanation":"Complete the swap by setting output 0 to node 1. Output 1 remains connected to root.","before":"swap-middle","after":"swapped","steps":[["edit","b",0,"a"],["commit"]],"focus":"b","querySlot":0,"result":"Final targets: output 0 -> node 1, output 1 -> root.","test":"test_swap_clears_one_slot_before_retargeting"},
+      {"id":"many-empty","chapter":"Targets and swaps","title":"Several later outputs may remain empty.","explanation":"Output 0 on b is connected to root. Outputs 1 and 2 may both be empty in a committed snapshot; None is not a duplicate target.","before":"gap","after":"gap-empty","steps":[["edit","b",2,null],["commit"]],"focus":"b","querySlot":1,"result":"Commit succeeds with two optional empty slots. Output 0 remains connected.","test":"test_multiple_empty_slots_are_not_duplicate_targets"},
+      {"id":"inputs-root","chapter":"Incoming records","title":"Incoming numbers may overlap across sources.","explanation":"Root receives output 0 from node 1 and output 0 from node 2. The query keeps each source's original output number.","before":"example","after":"example","steps":[["inputs","root"]],"expectedInputs":[{"source_node_id":1,"output_link_number":0},{"source_node_id":2,"output_link_number":0}],"focus":"root","result":"The result is a list of InputLink records, not newly numbered incoming slots.","test":"test_inputs_return_permanent_source_ids_and_output_numbers"},
+      {"id":"inputs-slot","chapter":"Incoming records","title":"An incoming record names the exact source slot.","explanation":"Node 1 receives node 2's output 1. The record's source_node_id is 2 and its output_link_number is 1.","before":"example","after":"example","steps":[["inputs","a"]],"expectedInputs":[{"source_node_id":2,"output_link_number":1}],"focus":"a","result":"The number belongs to the source node's output, not the target's array position.","test":"test_inputs_return_permanent_source_ids_and_output_numbers"},
+      {"id":"inputs-none","chapter":"Incoming records","title":"No incoming connections means an empty list.","explanation":"Nothing points to node 3 in this graph. Its own output to node 2 is not an incoming connection.","before":"example","after":"example","steps":[["inputs","c"]],"expectedInputs":[],"focus":"c","result":"inputs(node3) returns []. Only immediate incoming connections are reported.","test":"test_inputs_only_report_immediate_connections"},
+      {"id":"inputs-current","chapter":"Incoming records","title":"Draft queries reflect the next edit immediately.","explanation":"Retarget node 3 from node 2 to node 1, then query node 1's inputs without committing again.","before":"example","after":"retargeted","steps":[["edit","c",0,"a"],["inputs","a"]],"expectedInputs":[{"source_node_id":2,"output_link_number":1},{"source_node_id":3,"output_link_number":0}],"focus":"a","publishBefore":true,"result":"The draft sees two direct users. Latest commit still reads the last successful committed state.","test":"test_inputs_update_after_retargeting_clearing_and_deletion"},
+      {"id":"delete-node","chapter":"Deletion and snapshots","title":"Deleting b leaves c's required output 0 empty.","explanation":"Deleting b removes its owned slots. c keeps output 0, but its target is now empty. This draft needs a new output-0 target before commit.","before":"example","after":"deleted","steps":[["delete","b"],["commit"]],"error":"UnboundOutputError","focus":"c","querySlot":0,"publishBefore":true,"result":"Commit reports c's missing output 0. The deletion stays in the draft; the latest snapshot stays unchanged.","test":"test_deletion_leaves_output_zero_empty_until_reconnected"},
+      {"id":"reconnect","chapter":"Deletion and snapshots","title":"Reconnect output 0, then commit.","explanation":"Point c's existing output 0 to root. This repairs the required connection without changing c's ID, position relative to survivors, or output count.","before":"deleted","after":"repaired","steps":[["edit","c",0,"root"],["commit"]],"focus":"c","result":"Commit succeeds: c's output-0 chain reaches root again.","test":"test_deletion_leaves_output_zero_empty_until_reconnected"},
+      {"id":"delete-middle","chapter":"Deletion and snapshots","title":"Later output numbers never shift into a hole.","explanation":"Delete node 1. Node 4's output 1 becomes empty, while its output 2 still points to node 2. Node 2's output 1 is also empty.","before":"wide","after":"wide-hole","steps":[["delete","a"],["commit"]],"focus":"d","querySlot":2,"publishBefore":true,"result":"Both holes are preserved. No slot is removed, and commit succeeds.","test":"test_deletion_never_compacts_output_slots_or_recursively_deletes_nodes"},
+      {"id":"delete-user","chapter":"Deletion and snapshots","title":"Deleting a user keeps its dependencies.","explanation":"Delete node 3. Nodes 1 and 2 remain, and node 2's inputs become empty.","before":"example","after":"without-c","steps":[["delete","c"],["commit"],["inputs","b"]],"expectedInputs":[],"focus":"b","result":"Deletion is not recursive collection of a dependency subgraph.","test":"test_deleting_a_user_keeps_its_dependencies"},
+      {"id":"stale","chapter":"Deletion and snapshots","title":"The current graph rejects a deleted handle.","explanation":"After deleting node 2, try reading its old output count from the draft. The query raises UnknownNodeError rather than returning stale committed information.","before":"example","after":"deleted","steps":[["delete","b"],["count","b"]],"error":"UnknownNodeError","focus":"b","publishBefore":true,"result":"The latest snapshot remains fixed until replaced. Select it explicitly to inspect committed data.","test":"test_foreign_forged_and_deleted_handles_are_rejected"},
+      {"id":"snapshot-replace","chapter":"Deletion and snapshots","title":"Commit replaces the single latest snapshot.","explanation":"Retarget node 3 to node 1, commit again, then query that output on graph.snapshot.","before":"example","after":"retargeted","steps":[["edit","c",0,"a"],["commit"],["snapshot-get","c",0]],"expectedNode":"a","focus":"c","publishBefore":true,"result":"The latest snapshot reads node 1 as the target. No automatic history or restricted view is created.","test":"test_only_the_latest_successful_snapshot_is_retained"},
+      {"id":"snapshot-empty","chapter":"Deletion and snapshots","title":"A snapshot may have an empty later output.","explanation":"All output-0 targets are bound. b's later output 1 is empty and stays empty after commit; its output 2 still points to a.","before":"gap","after":"gap","steps":[["commit"],["snapshot-get","b",1]],"expectedNode":null,"focus":"b","querySlot":1,"result":"The snapshot returns None for optional output 1. Required output 0 still points to root.","test":"test_empty_targets_are_valid_in_committed_snapshots"},
+      {"id":"insert","chapter":"Ordered nodes","title":"Choose the position at birth, then fill output 0.","explanation":"Create d at position 2, between a and b. Its required output 0 starts empty, so the creation is allowed but commit must wait.","before":"example","after":"inserted-born","steps":[["create","d",1,2],["commit"]],"error":"UnboundOutputError","focus":"d","publishBefore":true,"result":"Order [0, 1, 4, 2, 3] stays in the draft. Connect d's output 0 before publishing.","test":"test_creation_appends_or_inserts_without_changing_existing_relative_order"},
+      {"id":"insert-target","chapter":"Ordered nodes","title":"An older ID may use a newer ID inserted earlier.","explanation":"Node 4 is earlier than node 2 in the array. Connect node 4 to node 1, then point node 2's output 1 to node 4.","before":"inserted-born","after":"inserted","steps":[["edit","d",0,"a"],["edit","b",1,"d"],["commit"]],"focus":"b","querySlot":1,"result":"The comparison uses list positions, not creation IDs: 2[1] -> 4 is allowed.","test":"test_output_order_compares_positions_not_ids"},
+      {"id":"position","chapter":"Ordered nodes","title":"Position and ID are different numbers.","explanation":"In order [0, 1, 4, 2, 3], node 2 has array position 3. Insertion did not rename it.","before":"inserted","after":"inserted","steps":[["position","b"]],"expectedCount":3,"focus":"b","result":"position(node2) returns 3. The root remains at position 0.","test":"test_insertion_and_deletion_shift_indexes_not_ids_targets_or_slot_numbers"},
+      {"id":"newer-later","chapter":"Ordered nodes","title":"The target must have a smaller position.","explanation":"Node 4 is at position 2 and node 2 is at position 3. Trying 4[0] -> 2 fails the single comparison 3 < 2.","before":"inserted","after":"inserted","steps":[["edit","d",0,"b"]],"error":"InvalidLinkOrderError","attempt":{"source":"d","target":"b","number":0},"focus":"d","result":"No cycle search is needed. The draft stays unchanged.","test":"test_output_order_compares_positions_not_ids"},
+      {"id":"self","chapter":"Ordered nodes","title":"Equal positions fail the same rule.","explanation":"Pointing node 3 to itself would require 3 < 3. The comparison is false, so the edit is rejected immediately.","before":"example","after":"example","steps":[["edit","c",0,"c"]],"error":"InvalidLinkOrderError","attempt":{"source":"c","target":"c","number":0},"focus":"c","result":"Node 3's original target remains node 2.","test":"test_same_or_later_target_is_rejected_by_one_position_rule"},
+      {"id":"delete-insert","chapter":"Ordered nodes","title":"Delete the inserted node without moving survivors.","explanation":"Delete node 4 from [0, 1, 4, 2, 3]. Nodes 2 and 3 shift left; node 2's output 1 is cleared and can be committed.","before":"inserted","after":"insertion-deleted","steps":[["delete","d"],["commit"]],"focus":"b","querySlot":1,"publishBefore":true,"result":"Order is [0, 1, 2, 3]. Node 2 still has its fixed slots 0 and 1.","test":"test_insertion_and_deletion_shift_indexes_not_ids_targets_or_slot_numbers"},
+      {"id":"no-move","chapter":"Ordered nodes","title":"Existing nodes have no move operation.","explanation":"The insertion position is chosen only at creation. There is no API for moving an already-created node.","before":"example","after":"example","steps":[["move","b",1]],"error":"AttributeError","focus":"b","result":"The relative order remains unchanged.","test":"test_fixed_slots_and_relative_order_cannot_be_edited_independently"},
+      {"id":"no-slot-delete","chapter":"Ordered nodes","title":"An individual output slot cannot be deleted.","explanation":"Clear a target if needed, or delete its owning node. There is no operation that deletes a single fixed slot.","before":"example","after":"example","steps":[["delete-slot","b",0]],"error":"AttributeError","focus":"b","result":"Node 2 still has output count 2.","test":"test_fixed_slots_and_relative_order_cannot_be_edited_independently"},
+      {"id":"no-id-reuse","chapter":"Ordered nodes","title":"Deleted node IDs are never reused.","explanation":"Delete every non-root node, create d with ID 4, and connect its output 0 to root before committing.","before":"example","after":"reborn","steps":[["delete","a"],["delete","b"],["delete","c"],["create","d",1],["edit","d",0,"root"],["commit"]],"focus":"d","result":"Root is still ID 0. New d has a bound output 0; IDs 1, 2, and 3 were not reused.","test":"test_node_ids_never_change_or_get_reused"},
+      {"id":"root-delete","chapter":"Rejected operations","title":"Root cannot be deleted.","explanation":"The initial fundamental node is fixed. Trying to delete it is rejected before any source's target is cleared.","before":"example","after":"example","steps":[["delete","root"]],"error":"RootDeletionError","rejectNode":"root","focus":"root","result":"All nodes, targets, slot counts, and array positions remain unchanged.","test":"test_root_cannot_be_deleted_or_given_an_output"},
+      {"id":"zero-count","chapter":"Rejected operations","title":"Only root has zero outputs.","explanation":"A new non-root node must have at least one slot, even if its target will remain empty forever.","before":"example","after":"example","steps":[["create","d",0]],"error":"InvalidOutputCountError","result":"The invalid creation does not allocate ID 4.","test":"test_invalid_creation_does_not_consume_ids"},
+      {"id":"zero-position","chapter":"Rejected operations","title":"Position 0 is reserved for root.","explanation":"A new node may be inserted after root, not before it. Creation at position 0 is rejected.","before":"example","after":"example","steps":[["create","d",1,0]],"error":"InvalidNodePositionError","result":"Root stays first and the next-node counter is unchanged.","test":"test_invalid_creation_does_not_consume_ids"},
+      {"id":"negative","chapter":"Rejected operations","title":"Negative slot numbers are not valid.","explanation":"get_output does not interpret -1 as the last slot. Output numbers are fixed non-negative positions.","before":"example","after":"example","steps":[["get","b",-1]],"error":"UnknownLinkError","focus":"b","result":"An invalid slot is reported explicitly, not returned as None.","test":"test_invalid_output_numbers_are_errors_not_empty_targets"},
+      {"id":"boolean","chapter":"Rejected operations","title":"False is not an output number.","explanation":"Python treats Boolean values as integer subclasses, but this API explicitly rejects them as slot numbers.","before":"example","after":"example","steps":[["get","b",false]],"error":"UnknownLinkError","focus":"b","result":"No slot or target changes.","test":"test_invalid_output_numbers_are_errors_not_empty_targets"},
+      {"id":"foreign","chapter":"Rejected operations","title":"Another graph's root is not our root 0.","explanation":"Node IDs are graph-local. A target handle from another graph is rejected even when its displayed number is 0.","before":"example","after":"example","steps":[["foreign","c",0]],"error":"UnknownNodeError","external":{"name":"foreign","number":0,"label":"other graph"},"attempt":{"source":"c","target":"foreign","number":0},"focus":"c","result":"Node 3's output 0 stays connected to node 2.","test":"test_foreign_forged_and_deleted_handles_are_rejected"},
+      {"id":"forged","chapter":"Rejected operations","title":"A repeated ID does not forge its node handle.","explanation":"A newly constructed Node(1) is not the existing node 1 in this graph. It cannot be used as an output target.","before":"example","after":"example","steps":[["forged","c",0,"a"]],"error":"UnknownNodeError","external":{"name":"forged","number":1,"label":"new handle"},"attempt":{"source":"c","target":"forged","number":0},"focus":"c","result":"The original target is unchanged.","test":"test_foreign_forged_and_deleted_handles_are_rejected"},
+      {"id":"node-id","chapter":"Rejected operations","title":"A permanent node ID is immutable.","explanation":"Connections can be edited. The number of an existing node cannot be renamed.","before":"example","after":"example","steps":[["freeze-node","a",99]],"error":"FrozenInstanceError","focus":"a","result":"Node 1 remains node 1.","test":"test_node_ids_never_change_or_get_reused"},
+      {"id":"frozen-snapshot","chapter":"Rejected operations","title":"Snapshot structure cannot be edited directly.","explanation":"Assigning a different root to the latest snapshot is rejected. Draft edits followed by commit replace the snapshot instead.","before":"example","after":"example","steps":[["freeze-snapshot"]],"error":"FrozenInstanceError","publishBefore":true,"result":"get_output and inputs on the snapshot still read fixed data.","test":"test_snapshots_are_fixed_and_queries_on_the_draft_are_current"},
+      {"id":"nod-labels","chapter":"Nod labels are not built-in types","title":"Query who points to a proposed context.","explanation":"Node 1 is labelled context, nodes 2 and 3 parameter, and node 4 function. inputs(node1) finds every immediate user without a restricted-view layer.","before":"nod-labels","after":"nod-labels","steps":[["commit"],["inputs","a"]],"expectedInputs":[{"source_node_id":2,"output_link_number":0},{"source_node_id":3,"output_link_number":0},{"source_node_id":4,"output_link_number":1}],"focus":"a","result":"The graph reports users and their slots. Which users count as parameters remains a future Nod rule.","test":"test_inputs_only_report_immediate_connections"}
+    ],
+    "smallGraphs": {
+      "valid":[72,136,200],
+      "noOutputs":[0,8,16,24,32,40,48,56,64,128,192,256,320,384,448],
+      "orderViolations":[80,88,96,104,112,120,144,152,160,168,176,184,208,216,224,232,240,248,264,272,280,288,296,304,312,328,336,344,352,360,368,376,392,400,408,416,424,432,440,456,464,472,480,488,496,504]
+    }
+  }
+  </script>
+  <script>
+    "use strict";
+    const element = id => document.getElementById(id);
+    let index=0, timer=null, mode="after", selectedNode="root", selectedSlot=0, smallMask=72;
+    window.addEventListener("error",event=>{pause();element("result").dataset.tone="error";element("result").textContent=`Animation error: ${event.message}`;});
+    const data=JSON.parse(element("case-data").textContent), scenes=data.cases, fixtures=data.fixtures;
+    const compactPreference=matchMedia("(max-width: 540px)");
+    const positions={root:[105,235],a:[300,140],b:[300,325],c:[550,140],d:[550,325],foreign:[685,325],forged:[685,325]};
+    const compactPositions={root:[75,275],a:[215,130],b:[215,430],c:[380,130],d:[380,430],foreign:[380,280],forged:[380,280]};
+    const smallPositions={root:[160,235],a:[390,135],b:[580,310]}, compactSmallPositions={root:[75,275],a:[215,130],b:[380,430]};
+    const names=state=>Object.keys(state.nodes), label=name=>name==="foreign"?"other.root":name==="forged"?"fake":name;
+    function stateFor(name) {if(!Object.hasOwn(fixtures,name))throw new Error(`Unknown fixture: ${name}`);return fixtures[name].state;}
+    function getOutputCount(state,node) {if(!Object.hasOwn(state.nodes,node))throw new Error(`Unknown node: ${node}`);return state.outputs[node].length;}
+    function getOutput(state,node,n) {const count=getOutputCount(state,node);if(!Number.isInteger(n)||n<0||n>=count)throw new Error(`Unknown output slot: ${node}[${n}]`);return state.outputs[node][n];}
+    function inputs(state,node) {
+      getOutputCount(state,node);
+      return names(state).sort((a,b)=>state.nodes[a]-state.nodes[b]).flatMap(source=>state.outputs[source].flatMap((target,n)=>target===node?[{source_node_id:state.nodes[source],output_link_number:n}]:[]));
+    }
+    function slots(state) {return names(state).flatMap(source=>Array.from({length:getOutputCount(state,source)},(_,number)=>({source,number,target:getOutput(state,source,number)})));}
+    const edgeKey=edge=>`${edge.source}:${edge.number}:${edge.target}`;
+    function latestFixture(scene) {
+      let latest=scene.publishBefore?scene.before:null;
+      scene.steps.forEach((step,position)=>{if(step[0]==="commit"&&!(scene.error&&position===scene.steps.length-1))latest=scene.after;});
+      return latest;
+    }
+    function setupSteps(name,seen=new Set()) {if(seen.has(name))throw new Error("Cyclic fixture inheritance.");seen.add(name);stateFor(name);return [...(fixtures[name].base?setupSteps(fixtures[name].base,seen):[]),...fixtures[name].steps];}
+    function pythonStep(step) {
+      const [op,a,b,c]=step, value=item=>item===null?"None":typeof item==="boolean"?(item?"True":"False"):String(item);
+      switch(op) {
+        case "create":return `${a} = graph.create_node(${value(b)}${step.length>3?`, position=${value(c)}`:""})`;
+        case "edit":return `graph.edit_link(${a}, ${value(b)}, ${value(c)})`;
+        case "delete":return `graph.delete_node(${a})`;
+        case "commit":return "snapshot = graph.commit()";
+        case "get":return `graph.get_output(${a}, ${value(b)})`;
+        case "count":return `graph.get_output_count(${a})`;
+        case "inputs":return `graph.inputs(${a})`;
+        case "snapshot-get":return `graph.snapshot.get_output(${a}, ${value(b)})`;
+        case "position":return `graph.position(${a})`;
+        case "move":return `graph.move_node(${a}, ${value(b)})\n# No such operation.`;
+        case "delete-slot":return `graph.delete_link(${a}, ${value(b)})\n# No such operation.`;
+        case "foreign":return `other = Graph()\ngraph.edit_link(${a}, ${value(b)}, other.root)`;
+        case "forged":return `fake = Node(${c}.number)\ngraph.edit_link(${a}, ${value(b)}, fake)`;
+        case "freeze-node":return `${a}.number = ${value(b)}`;
+        case "freeze-snapshot":return "graph.snapshot.root = Node(99)";
+        default:throw new Error(`Unknown operation: ${op}`);
+      }
+    }
+    for(const [name,fixture] of Object.entries(fixtures)) {
+      const state=fixture.state, ids=Object.values(state.nodes);
+      if(names(state)[0]!=="root"||state.nodes.root!==0||getOutputCount(state,"root")!==0||new Set(ids).size!==ids.length||ids.some(id=>!Number.isInteger(id)||id<0)||!Number.isInteger(state.nextNumber)||state.nextNumber<=Math.max(...ids))throw new Error(`Invalid fixture identity/order: ${name}`);
+      for(const source of names(state)) {
+        if(source!=="root"&&!getOutputCount(state,source))throw new Error(`Missing fixed slots: ${name}/${source}`);
+        const bound=state.outputs[source].filter(target=>target!==null);
+        if(new Set(bound).size!==bound.length||bound.some(target=>!Object.hasOwn(state.nodes,target)||names(state).indexOf(target)>=names(state).indexOf(source)))throw new Error(`Invalid target: ${name}/${source}`);
+      }
+      setupSteps(name).forEach(pythonStep);
+    }
+    if(!scenes.length||new Set(scenes.map(scene=>scene.id)).size!==scenes.length)throw new Error("Cases require unique IDs.");
+    for(const scene of scenes) {
+      const before=stateFor(scene.before),after=stateFor(scene.after);scene.steps.forEach(pythonStep);
+      for(const name of names(after))if(Object.hasOwn(before.nodes,name)&&(before.nodes[name]!==after.nodes[name]||getOutputCount(before,name)!==getOutputCount(after,name)))throw new Error(`Changed a fixed identity or count: ${scene.id}`);
+      if(JSON.stringify(names(before).filter(name=>Object.hasOwn(after.nodes,name)))!==JSON.stringify(names(after).filter(name=>Object.hasOwn(before.nodes,name))))throw new Error(`Moved an existing node: ${scene.id}`);
+    }
+    function svgElement(tag,attrs={},text=null) {const node=document.createElementNS("http://www.w3.org/2000/svg",tag);for(const [key,value]of Object.entries(attrs))node.setAttribute(key,String(value));if(text!==null)node.textContent=text;return node;}
+    function edgeGeometry(source,target,layout,offset,t) {
+      const [x1,y1]=layout[source],[x2,y2]=layout[target];
+      if(source===target)return {path:`M${x1-22} ${y1-24} C${x1-75} ${y1-110} ${x1+75} ${y1-110} ${x1+22} ${y1-24}`,label:[x1,y1-87]};
+      const distance=Math.hypot(x2-x1,y2-y1),ux=(x2-x1)/distance,uy=(y2-y1)/distance,sx=x1+ux*36,sy=y1+uy*36,tx=x2-ux*39,ty=y2-uy*39,cx=(sx+tx)/2-uy*offset,cy=(sy+ty)/2+ux*offset;
+      return {path:`M${sx} ${sy} Q${cx} ${cy} ${tx} ${ty}`,label:[(1-t)**2*sx+2*(1-t)*t*cx+t*t*tx,(1-t)**2*sy+2*(1-t)*t*cy+t*t*ty]};
+    }
+    function emptyGeometry(edge,state,layout,t,rotation) {const [x,y]=layout[edge.source],count=getOutputCount(state,edge.source),angle=Math.PI+(count===1?0:(edge.number/(count-1)-.5)*1.5)+rotation,ux=Math.cos(angle),uy=Math.sin(angle),sx=x+ux*36,sy=y+uy*36,tx=x+ux*112,ty=y+uy*112;return {path:`M${sx} ${sy} L${tx} ${ty}`,label:[sx+(tx-sx)*t,sy+(ty-sy)*t],end:[tx,ty]};}
+    function drawGraph(svg,state,options={}) {
+      const layout=options.candidate?(compactPreference.matches?compactSmallPositions:smallPositions):(compactPreference.matches?compactPositions:positions),prior=options.prior,current=slots(state),old=prior?slots(prior):[],keys=new Set(current.map(edgeKey)),oldKeys=new Set(old.map(edgeKey)),display={...(prior?prior.nodes:{}),...state.nodes},occupied=[],width=compactPreference.matches?460:760,height=compactPreference.matches?550:450;
+      if(options.external)display[options.external.name]=options.external.number;
+      for(const name of Object.keys(display))if(!Object.hasOwn(layout,name))throw new Error(`Missing position: ${name}`);
+      svg.replaceChildren();svg.setAttribute("viewBox",`0 0 ${width} ${height}`);svg.setAttribute("role",options.interactive?"group":"img");
+      svg.append(svgElement("title",{id:`${svg.id}-title`},options.candidate?"Candidate snapshot":"Indexed-output graph"),svgElement("desc",{id:`${svg.id}-description`},`Ordered node IDs: ${names(state).map(name=>state.nodes[name]).join(", ")}. A hollow output-0 endpoint blocks commit; later hollow endpoints are optional. Red attempts and previous dashed links are not current connections.`));
+      const colors={active:"#87ddba",new:"#f2bf75",empty:"#d8c98c",error:"#f0a08c",removed:"#d79c86"},defs=svgElement("defs");
+      for(const[tone,color]of Object.entries(colors)){const marker=svgElement("marker",{id:`${svg.id}-arrow-${tone}`,markerWidth:8,markerHeight:8,refX:7,refY:4,orient:"auto"});marker.append(svgElement("path",{d:"M0 0 L8 4 L0 8 Z",fill:color}));defs.append(marker);}svg.append(defs);
+      const lines=svgElement("g",{"aria-hidden":"true"});svg.append(lines);
+      function labelFits(box){if(box.left<4||box.top<4||box.right>width-4||box.bottom>height-4)return false;if(occupied.some(other=>box.left<other.right+3&&box.right>other.left-3&&box.top<other.bottom+3&&box.bottom>other.top-3))return false;return Object.keys(display).every(name=>{const[x,y]=layout[name],nx=Math.max(box.left,Math.min(box.right,x)),ny=Math.max(box.top,Math.min(box.bottom,y));return !(box.left<x+35&&box.right>x-35&&box.top<y+57&&box.bottom>y+40)&&Math.hypot(x-nx,y-ny)>=38;});}
+      function drawSlot(edge,kind) {
+        const empty=edge.target===null,requiredEmpty=empty&&edge.number===0,attempt=kind==="attempt",removed=kind==="removed",related=[...current,...old,...(options.attempt?[options.attempt]:[])],parallel=empty?[]:[...new Set(related.filter(other=>other.source===edge.source&&other.target===edge.target).map(other=>other.number))].sort((a,b)=>a-b),reverse=!empty&&edge.source!==edge.target&&related.some(other=>other.source===edge.target&&other.target===edge.source),added=prior&&!oldKeys.has(edgeKey(edge))&&!removed&&!attempt,bad=options.candidate&&!empty&&names(state).indexOf(edge.target)>=names(state).indexOf(edge.source),tone=attempt||bad||requiredEmpty?"error":removed?"removed":empty?"empty":added?"new":"active",text=attempt?`try ${edge.number}`:removed?`old ${edge.number}`:String(edge.number),badgeWidth=Math.max(23,text.length*7+12),offset=attempt?75:parallel.length>1?(parallel.indexOf(edge.number)-(parallel.length-1)/2)*70:reverse?45:0;
+        let geometry=null;
+        for(const rotation of empty?[0,-.7,.7,-1.4,1.4,Math.PI]:[0]){
+          for(const t of [reverse&&!attempt?.5:removed?.45:.32,.55,.7,.2,.8,.4,.6,.9,.1]){
+            const candidate=empty?emptyGeometry(edge,state,layout,t,rotation):edgeGeometry(edge.source,edge.target,layout,offset,t);
+            if(empty){const[ex,ey]=candidate.end;if(ex<8||ex>width-8||ey<8||ey>height-8||Object.keys(display).some(name=>Math.hypot(ex-layout[name][0],ey-layout[name][1])<45))continue;}
+            const[x,y]=candidate.label,box={left:x-badgeWidth/2,right:x+badgeWidth/2,top:y-11,bottom:y+10};if(labelFits(box)){occupied.push(box);geometry=candidate;break;}
+          }if(geometry!==null)break;
+        }
+        if(geometry===null)throw new Error(`No clear slot label: ${edge.source}[${edge.number}]`);
+        const group=svgElement("g",{"data-kind":empty?"empty":kind,"data-source":edge.source,"data-target":empty?"":edge.target,"data-number":edge.number}),path=svgElement("path",{d:geometry.path,stroke:colors[tone],"class":`edge${empty?" empty-link":""}${attempt?" rejected-link":""}${removed?" removed-link":""}${added&&!empty?" new-link":""}`});
+        if(!empty)path.setAttribute("marker-end",`url(#${svg.id}-arrow-${tone})`);group.append(path);if(empty)group.append(svgElement("circle",{cx:geometry.end[0],cy:geometry.end[1],r:5,fill:"#142a2a",stroke:colors[tone],"stroke-width":2}));
+        const[x,y]=geometry.label,badge=svgElement("g",{"class":`edge-label${empty||added?" amber":""}${attempt||removed||bad||requiredEmpty?" error":""}`});badge.append(svgElement("rect",{x:x-badgeWidth/2,y:y-11,width:badgeWidth,height:21,rx:6}),svgElement("text",{x,y:y+4},text));group.append(badge);lines.append(group);
+      }
+      if(prior&&options.showRemoved)for(const edge of old)if(edge.target!==null&&!keys.has(edgeKey(edge)))drawSlot(edge,"removed");
+      for(const edge of current)drawSlot(edge,options.candidate?"candidate":"current");if(options.attempt)drawSlot(options.attempt,"attempt");
+      for(const[name,number]of Object.entries(display)){
+        const present=Object.hasOwn(state.nodes,name),external=options.external&&name===options.external.name,position=present?names(state).indexOf(name):-1,classes=["node"];if(!present)classes.push("removed-node");else if(state.outputs[name].includes(null))classes.push("has-empty");if(present&&name!=="root"&&state.outputs[name][0]===null)classes.push("needs-zero");if(present&&prior&&!Object.hasOwn(prior.nodes,name))classes.push("new-node");if(name===options.rejectNode||external)classes.push("rejected-node");if(options.interactive&&name===selectedNode)classes.push("selected");
+        const node=svgElement("g",{"class":classes.join(" "),transform:`translate(${layout[name].join(" ")})`,"data-node":name,"data-number":number,"data-position":position,"data-removed":!present});node.append(svgElement("circle",{r:34}),svgElement("text",{"class":external?"code-name external-name":"code-name",y:-1},label(name)),svgElement("text",{"class":"number",y:17},`ID ${number}`),svgElement("text",{"class":"number",y:53},present?`pos ${position}`:external?options.external.label:"deleted"));
+        if(options.interactive){node.setAttribute("role","button");node.setAttribute("tabindex","0");node.setAttribute("aria-label",`Inspect ${label(name)}, ID ${number}${present?`, position ${position}`:", not in graph"}`);node.addEventListener("click",()=>selectNode(name));node.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();selectNode(name);}});}svg.append(node);
+      }
+    }
+    function currentDiagram(){const scene=scenes[index],fixture=mode==="committed"?latestFixture(scene):mode==="before"?scene.before:scene.after;if(fixture===null)throw new Error("No successful snapshot in this example.");return {scene,state:stateFor(fixture)};}
+    function selectNode(name){selectedNode=name;selectedSlot=0;renderInspector();for(const node of element("graph").querySelectorAll(".node"))node.classList.toggle("selected",node.dataset.node===selectedNode);}
+    function renderOutput(){
+      const{state}=currentDiagram(),result=element("output-target");result.removeAttribute("data-target");
+      if(!Object.hasOwn(state.nodes,selectedNode)){result.textContent="UnknownNodeError: node is not in this graph state.";return;}
+      const count=getOutputCount(state,selectedNode);if(!count){result.textContent="No slot exists: root output 0 would raise UnknownLinkError.";return;}
+      const target=getOutput(state,selectedNode,selectedSlot);result.dataset.target=target===null?"":target;result.textContent=target===null?(selectedSlot===0?"None (connect output 0 before commit)":"None (optional empty target)"):`${label(target)} / ID ${state.nodes[target]}`;
+    }
+    function renderInspector(){
+      const{scene,state}=currentDiagram(),display={...stateFor(scene.before).nodes,...state.nodes},picker=element("node-picker"),slotPicker=element("output-number"),incoming=element("input-list");if(mode==="after"&&scene.external)display[scene.external.name]=scene.external.number;picker.replaceChildren();slotPicker.replaceChildren();incoming.replaceChildren();
+      for(const name of Object.keys(display).sort((a,b)=>display[a]-display[b])){const option=document.createElement("option");option.value=name;option.textContent=`${label(name)} / ID ${display[name]}${Object.hasOwn(state.nodes,name)?"":" (not in graph)"}`;picker.append(option);}if(!Object.hasOwn(display,selectedNode))selectedNode="root";picker.value=selectedNode;element("selected-node").textContent=`${label(selectedNode)} / ID ${display[selectedNode]}`;
+      const present=Object.hasOwn(state.nodes,selectedNode),count=present?getOutputCount(state,selectedNode):0;element("output-count").textContent=present?String(count):"UnknownNodeError";slotPicker.disabled=!present||count===0;
+      if(count){if(selectedSlot>=count)selectedSlot=0;for(let n=0;n<count;n++){const option=document.createElement("option");option.value=String(n);option.textContent=String(n);slotPicker.append(option);}slotPicker.value=String(selectedSlot);}else{const option=document.createElement("option");option.textContent=present?"no slots":"unknown node";slotPicker.append(option);}
+      renderOutput();
+      if(!present){const item=document.createElement("li");item.textContent="UnknownNodeError: no current node with this handle.";incoming.append(item);return;}
+      const records=inputs(state,selectedNode);if(!records.length){const item=document.createElement("li");item.textContent="[] (no incoming connections)";incoming.append(item);}
+      for(const record of records){const item=document.createElement("li");item.dataset.sourceNodeId=String(record.source_node_id);item.dataset.outputLinkNumber=String(record.output_link_number);const source=names(state).find(name=>state.nodes[name]===record.source_node_id),button=document.createElement("button");button.type="button";button.textContent=String(record.source_node_id);button.addEventListener("click",()=>selectNode(source));item.append(document.createTextNode("{source_node_id: "),button,document.createTextNode(`, output_link_number: ${record.output_link_number}}`));incoming.append(item);}
+    }
+    function chips(container,state){container.replaceChildren();for(const name of names(state)){const chip=document.createElement("span");chip.className="chip";chip.textContent=`${label(name)} (ID ${state.nodes[name]})`;container.append(chip);}}
+    function render(){
+      const{scene,state}=currentDiagram(),before=stateFor(scene.before),latest=latestFixture(scene);document.body.dataset.step=String(index);document.body.dataset.case=scene.id;document.body.dataset.mode=mode;
+      element("step-count").textContent=`${scene.chapter} / case ${index+1} of ${scenes.length}`;element("step-title").textContent=scene.title;element("explanation").textContent=scene.explanation;element("code").textContent=scene.steps.map(pythonStep).join("\n");
+      element("setup-code").textContent=["from node import Graph, Node","","graph = Graph()","root = graph.root",...setupSteps(scene.before).map(pythonStep),...(scene.publishBefore?["snapshot = graph.commit()"]:[])].join("\n");element("example-test").textContent=scene.test;element("result").textContent=`${scene.error?scene.error+": ":""}${scene.result}`;element("result").dataset.tone=scene.error?"error":"success";
+      element("phase").textContent=mode==="committed"?"Latest commit":mode==="before"?"Before / draft":scene.error?(scene.steps.at(-1)[0]==="commit"?"Commit rejected":"Operation rejected"):"Allowed";element("phase").dataset.tone=mode==="after"&&scene.error?"error":"";element("next-number").textContent=mode==="committed"?"Snapshot: no allocator":`Next node ID: ${state.nextNumber}`;element("graph-count").textContent=`${names(state).length} nodes / ${slots(state).length} fixed slots`;
+      const missing=names(state).filter(name=>name!=="root"&&state.outputs[name][0]===null),optionalEmpty=slots(state).filter(edge=>edge.number>0&&edge.target===null).length;element("readiness").dataset.tone=missing.length?"error":"success";element("readiness").textContent=missing.length?`Commit blocked: output 0 is empty on ${missing.map(name=>`${label(name)} (ID ${state.nodes[name]})`).join(", ")}. Later outputs may remain empty.`:`${mode==="committed"?"Valid snapshot":"Commit ready"}: all output-0 targets are bound; ${optionalEmpty} optional later output${optionalEmpty===1?"":"s"} empty.`;
+      element("change-note").textContent=mode==="committed"?"This is the single latest successful snapshot, not an automatic history.":mode==="before"?"Prepared starting state for this independent example.":"Targets may be cleared, but surviving nodes keep their output counts and numbers.";
+      element("node-order").replaceChildren();names(state).forEach((name,position)=>{const item=document.createElement("li");item.dataset.node=name;item.dataset.position=String(position);item.dataset.number=String(state.nodes[name]);item.setAttribute("aria-label",`Position ${position}, code name ${label(name)}, ID ${state.nodes[name]}`);const indexLabel=document.createElement("span");indexLabel.className="array-index";indexLabel.textContent=String(position);const value=document.createElement("span");value.className="array-value";value.textContent=`${label(name)} ${state.nodes[name]}`;item.append(indexLabel,value);element("node-order").append(item);});chips(element("current-nodes"),state);if(latest!==null)chips(element("committed-nodes"),stateFor(latest));else element("committed-nodes").textContent="No successful commit yet.";
+      renderInspector();drawGraph(element("graph"),state,{interactive:true,prior:mode==="after"?before:null,showRemoved:element("show-removed").checked,attempt:mode==="after"?scene.attempt:null,external:mode==="after"?scene.external:null,rejectNode:mode==="after"?scene.rejectNode:null});
+      for(const tab of ["before","after","committed"])element(tab).setAttribute("aria-pressed",String(mode===tab));element("committed").disabled=latest===null;element("progress").value=String(index);element("progress").setAttribute("aria-valuetext",`Case ${index+1}: ${scene.title}`);element("previous").disabled=index===0;element("next").disabled=index===scenes.length-1;element("case-picker").value=String(index);
+      for(const button of element("timeline").querySelectorAll("button")){const current=Number(button.dataset.go)===index;button.classList.toggle("current",current);if(current)button.setAttribute("aria-current","step");else button.removeAttribute("aria-current");}
+    }
+    function pause(){if(timer!==null)clearInterval(timer);timer=null;document.body.dataset.playing="false";element("play").textContent="Play";element("play").setAttribute("aria-label","Play animation");}
+    function goTo(step){if(!Number.isInteger(step))throw new Error("Case index must be an integer.");index=Math.max(0,Math.min(scenes.length-1,step));mode="after";selectedNode=scenes[index].focus||"root";selectedSlot=scenes[index].querySlot||0;render();}
+    function play(){if(timer!==null)return;if(index===scenes.length-1)goTo(0);mode="after";render();document.body.dataset.playing="true";element("play").textContent="Pause";element("play").setAttribute("aria-label","Pause animation");timer=setInterval(()=>{goTo(index+1);if(index===scenes.length-1)pause();},4200);}
+    function renderTimeline(){const search=element("search").value.trim().toLowerCase(),timeline=element("timeline");timeline.replaceChildren();let chapter=null,count=0;for(const[step,scene]of scenes.entries()){if(search&&!`${scene.chapter} ${scene.title} ${scene.explanation} ${scene.error||""}`.toLowerCase().includes(search))continue;if(chapter!==scene.chapter){chapter=scene.chapter;const heading=document.createElement("h3");heading.textContent=chapter;timeline.append(heading);}const button=document.createElement("button");button.type="button";button.dataset.go=String(step);button.dataset.outcome=scene.error?"rejected":"allowed";button.textContent=`${String(step+1).padStart(2,"0")}  ${scene.title}`;if(step===index){button.classList.add("current");button.setAttribute("aria-current","step");}button.addEventListener("click",()=>{pause();goTo(step);document.querySelector(".case-navigation").scrollIntoView({block:"start"});});timeline.append(button);count++;}element("search-count").textContent=count?`${count} of ${scenes.length} cases. Green: allowed; red: rejected edit or query. Empty targets are valid in every graph state.`:"No cases match. Clear the search to see all cases.";}
+    function smallState(mask){const state={nodes:{root:0,a:1,b:2},outputs:{}},nodes=["root","a","b"];nodes.forEach((source,i)=>{state.outputs[source]=nodes.filter((target,j)=>Boolean(mask&(1<<(3*i+j))));});return state;}
+    function smallVerdict(mask){if(data.smallGraphs.valid.includes(mask))return"valid";if(data.smallGraphs.noOutputs.includes(mask))return"no-outputs";if(data.smallGraphs.orderViolations.includes(mask))return"order";if(mask&7)return"root-output";throw new Error(`No checked verdict: ${mask}`);}
+    function renderSmall(mask){if(!Number.isInteger(mask)||mask<0||mask>511)throw new Error("Candidate number must be from 0 to 511.");smallMask=mask;const state=smallState(mask),verdict=smallVerdict(mask);element("small-graph").dataset.mask=String(mask);element("small-graph").dataset.verdict=verdict;element("small-mask").value=String(mask);element("small-mask").removeAttribute("aria-invalid");element("small-error").textContent="";element("small-count").textContent=`Candidate ${mask} / ${slots(state).length} slots`;element("small-phase").textContent=verdict==="valid"?"Valid snapshot":"Snapshot rejected";element("small-phase").dataset.tone=verdict==="valid"?"":"error";element("small-result").dataset.tone=verdict==="valid"?"":"error";element("small-result").textContent=({valid:"Valid arrow shape: root has no slots and every target is earlier.","root-output":"RootOutputLinkError: root cannot own an output slot.","no-outputs":"InvalidOutputCountError: a non-root node needs at least one slot. A zero-slot node differs from a node with one valid empty slot.",order:"InvalidLinkOrderError: target position < source position is false. No cycle traversal is needed."})[verdict];for(const input of element("matrix").querySelectorAll("input"))input.checked=Boolean(mask&(1<<Number(input.dataset.bit)));drawGraph(element("small-graph"),state,{candidate:true});}
+    element("matrix").append(document.createElement("span"));for(const text of["to ID 0","to ID 1","to ID 2"]){const heading=document.createElement("span");heading.textContent=text;element("matrix").append(heading);}for(let i=0;i<3;i++){const heading=document.createElement("span");heading.textContent=`from ID ${i}`;element("matrix").append(heading);for(let j=0;j<3;j++){const cell=document.createElement("label");if(i===0)cell.className="root-output";const input=document.createElement("input");input.type="checkbox";input.dataset.bit=String(3*i+j);input.setAttribute("aria-label",`Candidate arrow from node ${i} to node ${j}`);input.addEventListener("change",()=>renderSmall(smallMask^(1<<(3*i+j))));cell.append(input);element("matrix").append(cell);}}
+    element("small-mask").addEventListener("input",event=>{const value=event.target.value;if(!/^\d+$/.test(value)||Number(value)>511){event.target.setAttribute("aria-invalid","true");element("small-error").textContent="Enter an integer from 0 to 511. The candidate diagram has not changed.";return;}renderSmall(Number(value));});element("small-valid").addEventListener("click",()=>renderSmall(72));element("small-order").addEventListener("click",()=>renderSmall(96));element("small-root").addEventListener("click",()=>renderSmall(73));
+    let group=null;for(const[step,scene]of scenes.entries()){if(!group||group.label!==scene.chapter){group=document.createElement("optgroup");group.label=scene.chapter;element("case-picker").append(group);}const option=document.createElement("option");option.value=String(step);option.textContent=`${step+1}. ${scene.title}`;group.append(option);}
+    element("case-picker").addEventListener("change",event=>{pause();goTo(Number(event.target.value));});element("search").addEventListener("input",renderTimeline);element("node-picker").addEventListener("change",event=>selectNode(event.target.value));element("output-number").addEventListener("change",event=>{selectedSlot=Number(event.target.value);renderOutput();});element("show-removed").addEventListener("change",render);for(const tab of["before","after","committed"])element(tab).addEventListener("click",()=>{pause();mode=tab;render();});element("play").addEventListener("click",()=>timer===null?play():pause());element("restart").addEventListener("click",()=>{pause();goTo(0);});element("previous").addEventListener("click",()=>{pause();goTo(index-1);});element("next").addEventListener("click",()=>{pause();goTo(index+1);});element("progress").max=String(scenes.length-1);element("progress").addEventListener("input",event=>{pause();goTo(Number(event.target.value));});element("case-total").textContent=`${scenes.length} cases / 4.2s`;
+    document.addEventListener("keydown",event=>{if(event.target.closest("input,select,textarea,button,[role=button]"))return;if(event.key==="ArrowRight"){event.preventDefault();pause();goTo(index+1);}if(event.key==="ArrowLeft"){event.preventDefault();pause();goTo(index-1);}});document.addEventListener("visibilitychange",()=>{if(document.hidden)pause();});const motionPreference=matchMedia("(prefers-reduced-motion: reduce)");motionPreference.addEventListener("change",event=>{if(event.matches)pause();});compactPreference.addEventListener("change",()=>{render();drawGraph(element("small-graph"),smallState(smallMask),{candidate:true});});pause();renderTimeline();goTo(0);renderSmall(72);
+  </script>
+</body>
+</html>

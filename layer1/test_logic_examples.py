@@ -1,6 +1,6 @@
 import unittest
 
-from layer0 import Node
+from node import Node
 
 from . import EncodingError, TypeCheckError
 from . import _calculus as calculus

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from layer0 import Node
+from node import Node
 
 from . import _calculus as c
 from .core import EncodingError, Program, _Reader

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 
-from layer0 import Graph, GraphSnapshot, GraphView, Node, UnknownNodeError
+from node import Graph, GraphSnapshot, GraphView, Node, UnknownNodeError
 
 from . import _calculus as calculus
 

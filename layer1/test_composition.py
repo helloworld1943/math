@@ -2,7 +2,7 @@ import itertools
 import unittest
 from unittest.mock import patch
 
-from layer0 import GraphSnapshot, Node, UnknownNodeError
+from node import GraphSnapshot, Node, UnknownNodeError
 
 from . import CheckLimitError, EncodingError, Program, Snapshot, TypeCheckError
 from . import _calculus as calculus

@@ -3,7 +3,7 @@
 import itertools
 import unittest
 
-from layer0 import Node, UnknownNodeError
+from node import Node, UnknownNodeError
 
 from . import EncodingError, TypeCheckError
 from . import _calculus as c

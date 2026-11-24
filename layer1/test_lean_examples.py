@@ -1,6 +1,6 @@
 import unittest
 
-from layer0 import Node, UnknownNodeError
+from node import Node, UnknownNodeError
 
 from . import CheckLimitError, TypeCheckError
 from . import _calculus as calculus
