@@ -9,9 +9,10 @@ from types import MappingProxyType
 
 @dataclass(frozen=True, eq=False, slots=True)
 class Node:
-    """An identity with a permanent, graph-local node number."""
+    """An identity with a permanent number and optional immutable byte value."""
 
     number: int
+    value: bytes | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -20,6 +21,8 @@ class Node:
             or self.number < 0
         ):
             raise ValueError("A node number must be a non-negative integer")
+        if self.value is not None and not isinstance(self.value, bytes):
+            raise TypeError("A node value must be immutable bytes or None")
 
 
 @dataclass(frozen=True, slots=True)
@@ -226,7 +229,8 @@ class Graph(_GraphQueries):
         return self._links
 
     def create_node(
-        self, output_count: int = 1, *, position: int | None = None
+        self, output_count: int = 1, *, position: int | None = None,
+        value: bytes | bytearray | None = None,
     ) -> Node:
         """Insert at birth, appending by default; existing nodes never move."""
         if (
@@ -247,7 +251,9 @@ class Graph(_GraphQueries):
             raise InvalidNodePositionError(
                 f"Creation position must be an integer from 1 to {len(self._links)}"
             )
-        node = Node(self._next_number)
+        if value is not None and not isinstance(value, (bytes, bytearray)):
+            raise TypeError("A node value must be bytes, bytearray, or None")
+        node = Node(self._next_number, bytes(value) if value is not None else None)
         targets: list[Node | None] = [None] * output_count
         if position == len(self._links):
             self._links[node] = targets

@@ -1,0 +1,24 @@
+// Tokens carry bytes; grammar composers connect descriptions.
+int count = 5;
+bool x = true;
+bool z = x | x;
+print(z);
+
+func xx(bool a, bool b) bool {
+    return a && b
+}
+
+print(xx(z, false));
+print(count + 2 * 3);
+
+int i = 0;
+while (i < 3) {
+    print(i);
+    i = i + 1;
+}
+
+if (z) {
+    print(42);
+} else {
+    print(0);
+}

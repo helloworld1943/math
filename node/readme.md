@@ -6,6 +6,14 @@ rules are not built in. Layers 1, 2, and 3 are paused.
 
 ## 1. A link means "based on this information"
 
+Each node also has an optional immutable `value: bytes | None`. Set it at
+creation with `graph.create_node(value=b"...")`. A `bytearray` is copied into
+immutable bytes; `None` (vacant) differs from `b""` (an empty byte value).
+The root's value is `None`. Values do not affect identity, link validation,
+or ordering. The Node layer assigns no encoding or type to these bytes.
+Published values cannot be reassigned; construct a new node for a new value.
+Snapshots and retained node handles preserve their values after deletion.
+
 ```text
 b[1] -> a
 ```

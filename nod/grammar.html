@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nod / grammar rules and nodes</title>
+  <link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/stage.css">
+  <script src="/graph.js" defer></script><script src="/stage.js" defer></script>
+</head>
+<body data-stage="grammar">
+  <main>
+    <header><div><p class="eyebrow">Nod / 2. Grammar composers</p><h1>Token categories become structure.</h1><p class="intro">Explore each grammar category, its alternatives, ordered symbols, and composer actions. Then build a syntax graph from the tokenizer's output, without type checking or running the program.</p></div></header>
+    <nav class="stage-nav" aria-label="Language stages"><a href="/">Full playground</a><a href="/tokenizer.html" id="next-stage">Tokenizer</a><a href="/grammar.html" aria-current="page">Grammar</a></nav>
+    <section class="rule-layout">
+      <div class="panel">
+        <h2>Grammar rule definitions</h2><label for="rule-picker">Choose a grammar category</label>
+        <select id="rule-picker" aria-label="Choose rule"></select>
+        <label class="helper-option"><input id="helpers" type="checkbox"> Include generated repetition helpers</label>
+        <pre id="rule-source"></pre><p id="rule-facts" class="hint"></p>
+        <div id="rule-status" role="status">Loading actual Lark definitions...</div>
+        <p class="hint">The graph shows Lark's compiled alternatives. Each sequence references terminal/nonterminal category symbols; actions name the constructor or inline pass-through. Recursive rules share category-symbol nodes, not cyclic output links. Select a symbol to open its definition.</p>
+      </div>
+      <section class="graph-panel"><div class="graph-heading"><h2>Selected rule as real nodes</h2></div>
+        <p class="graph-note">Scroll inside the diagram when needed. Arrows point to earlier nodes; edge labels are output-slot numbers.</p>
+        <ol class="node-array" id="rule-array" aria-label="Rule graph nodes"></ol>
+        <div class="stage-scroll"><svg id="rule-graph" role="group" aria-label="Rule definition graph"></svg></div>
+      </section>
+    </section>
+    <section class="workspace stage-example">
+      <div class="panel"><h2>Try source / token input</h2><label class="sr-only" for="source">Source to compose</label>
+        <textarea id="source" spellcheck="false">int x = 5;
+bool z = true;
+print(z);</textarea>
+        <div class="editor-controls"><label><input id="auto" type="checkbox" checked> Update automatically</label><button id="build" class="primary" type="button">Compose grammar</button></div>
+        <div id="status" role="status" aria-live="polite">Ready to compose.</div><p id="provenance" class="hint"></p>
+        <p class="hint">Try <code>int x = true;</code> or <code>print(unknown);</code>: these have valid syntax. Semantic errors belong to the separate checker in the full playground.</p>
+      </div>
+      <section class="panel tokens"><h2>Tokenizer output supplied to the parser</h2><p id="example-count" class="hint"></p><ol id="tokens" aria-label="Generated token sequence"></ol>
+        <p class="hint">Python feeds this token stream into Lark's LALR parser. Reduction actions construct syntax nodes directly. Start category: <code>start</code>; the whole input must be consumed.</p>
+      </section>
+    </section>
+    <section class="graph-panel"><div class="graph-heading"><h2>Generated grammar graph</h2><label><input id="show-tokens" type="checkbox"> Include token nodes and sequence</label></div>
+      <p class="graph-note">Syntax nodes have vacant values and explicit child links. The final Program reaches syntax and TokenSequence. Token categories guide parsing; literal payloads are not evaluated. This stage does not claim the result is well typed.</p>
+      <ol class="node-array" id="example-array" aria-label="Generated ordered nodes"></ol>
+      <div class="stage-scroll"><svg id="example-graph" role="group" aria-label="Generated example graph"></svg></div>
+    </section>
+    <section class="panel inspector"><h2 id="inspector-title">Select a rule or example node</h2>
+      <dl><dt>Graph</dt><dd id="inspector-graph"></dd><dt>Category</dt><dd id="kind"></dd><dt>Raw value</dt><dd id="value"></dd><dt>Byte array</dt><dd id="bytes"></dd><dt>Output links</dt><dd id="links"></dd><dt>Logical slots</dt><dd id="child-slots"></dd></dl>
+      <button id="related" type="button" disabled>Open related rule</button>
+    </section>
+    <footer>Both diagrams are built by Python using the real Node layer. Definitions are generated from the actual compiled grammar, including EBNF helpers. They are a read-only visualization, not an editable replacement parser. Rule definitions and source examples have separate graph-local IDs. Moving between stage pages transfers source, not persistent Node handles.</footer>
+    <noscript>JavaScript and the local Nod server are required.</noscript>
+  </main>
+</body>
+</html>

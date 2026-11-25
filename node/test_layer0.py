@@ -21,6 +21,31 @@ from node import (
 
 
 class Layer0Tests(unittest.TestCase):
+    def test_optional_byte_values_are_immutable_and_preserved(self) -> None:
+        graph = Graph()
+        data = bytearray(b"\x00\xff")
+        a = graph.create_node(value=data)
+        data[0] = 9
+        graph.edit_link(a, 0, graph.root)
+        snapshot = graph.commit()
+        self.assertEqual(a.value, b"\x00\xff")
+        self.assertIsNone(graph.root.value)
+        self.assertIsNone(graph.create_node().value)
+        self.assertEqual(graph.create_node(value=b"").value, b"")
+        with self.assertRaises(FrozenInstanceError):
+            setattr(a, "value", b"changed")
+        graph.delete_node(a)
+        self.assertEqual(snapshot.node_order[1].value, b"\x00\xff")
+
+    def test_bad_values_do_not_allocate_node_ids(self) -> None:
+        graph = Graph()
+        for value in ("text", [1, 2], 123, True):
+            with self.assertRaises(TypeError):
+                graph.create_node(value=value)
+        with self.assertRaises(TypeError):
+            Node(1, bytearray(b"x"))
+        self.assertEqual(graph.create_node(value=b"x").number, 1)
+
     def _example(self) -> tuple[Graph, Node, Node, Node]:
         graph = Graph()
         a = graph.create_node()

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nod / live language graph</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/graph.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <main>
+    <header>
+      <div><p class="eyebrow">Nod / language playground</p><h1>Write code. See its structure.</h1>
+      <p class="intro">Real Python tokenization, LALR grammar composers, semantic checking, and bounded execution &mdash; on the Node graph.</p></div>
+      <span class="tag">int &middot; bool &middot; functions &middot; if &middot; while</span>
+    </header>
+    <nav class="stage-nav" aria-label="Language stages"><a href="/tokenizer.html">Tokenizer rules and nodes</a> &middot; <a href="/grammar.html">Grammar rules and nodes</a></nav>
+    <div class="workspace">
+      <section class="editor panel">
+        <div class="panel-heading"><h2>Source program</h2><button id="example" type="button">Load example</button></div>
+        <label class="sr-only" for="source">Nod source code</label>
+        <textarea id="source" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Loading example..."></textarea>
+        <div class="editor-controls"><label><input id="auto" type="checkbox" checked> Build and run automatically</label><button id="run" class="primary" type="button">Build &amp; run</button></div>
+        <p class="hint">Ctrl/Command + Enter to run. One declaration per name per scope. print is a language statement, not JavaScript or Python evaluation.</p>
+        <div id="status" role="status" aria-live="polite">Connecting to the local language server...</div>
+      </section>
+      <section class="results panel">
+        <h2>Execution output</h2><pre id="output" aria-live="polite">No successful run yet.</pre>
+        <h3>Top-level runtime variables</h3><div id="variables" class="facts"></div>
+        <h3>Functions</h3><div id="functions" class="facts"></div>
+        <div id="metrics" class="metrics">No accepted graph.</div>
+        <p class="hint">A proposal is accepted only after parsing, checking, and execution succeed. An error keeps the previous successful graph and output, labeled below.</p>
+        <p id="provenance"></p>
+      </section>
+    </div>
+    <section class="tokens panel"><h2>1. Tokenizer / ordered occurrences</h2><p class="hint">Every token has a category and raw UTF-8 byte value. Click a token to inspect it. Whitespace and // comments are skipped.</p><ol id="tokens" aria-label="Ordered token occurrences"></ol></section>
+    <section class="graph-panel">
+      <div class="graph-heading"><div><p class="eyebrow">2. Grammar composers / description graph</p><h2>Parts first. Parents afterward.</h2></div><label><input id="show-tokens" type="checkbox"> Include token nodes and sequence</label></div>
+      <p class="graph-note">Arrows point to earlier dependencies. Slot 0 points to root. The final Program reaches both the syntax and the complete token sequence. Display labels are structural metadata; token payloads live in Node.value.</p>
+      <ol id="array" aria-label="Ordered graph nodes"></ol>
+      <div id="graph-scroll"><svg id="graph" role="group" aria-label="Grammar description graph"></svg><p id="graph-empty">Run a program to build its graph.</p></div>
+    </section>
+    <section class="panel inspector">
+      <h2 id="inspector-title">Select a token or graph node</h2>
+      <dl><dt>Category</dt><dd id="kind">&mdash;</dd><dt>Source location</dt><dd id="location">&mdash;</dd><dt>Raw value</dt><dd id="value">&mdash;</dd><dt>Byte array</dt><dd id="bytes">&mdash;</dd><dt>Checked type</dt><dd id="type">&mdash;</dd><dt>Resolved binding</dt><dd id="binding">&mdash;</dd><dt>Output links</dt><dd id="links"></dd><dt>Logical child slots</dt><dd id="child-slots">&mdash;</dd></dl>
+    </section>
+    <footer>Structural matching and semantic checking are separate. Bindings and inferred types are checker annotations, not mutable node values or hidden graph edges. Runtime variable storage is separate from the immutable descriptions.<br>Run from the repository root: <code>.venv/bin/python -m nod.server</code>. This page requires the local server; it does not execute source as host Python or JavaScript.</footer>
+    <noscript>JavaScript is required for the editor. The Python API is available as nod.language.run_source.</noscript>
+  </main>
+</body>
+</html>
