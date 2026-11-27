@@ -21,11 +21,17 @@ ASSETS = {
     "/app.js": ("app.js", "text/javascript; charset=utf-8"),
     "/style.css": ("style.css", "text/css; charset=utf-8"),
     "/example.nod": ("example.nod", "text/plain; charset=utf-8"),
+    "/dependent_example.nod": ("dependent_example.nod", "text/plain; charset=utf-8"),
+    "/proposition_example.nod": ("proposition_example.nod", "text/plain; charset=utf-8"),
     "/tokenizer.html": ("tokenizer.html", "text/html; charset=utf-8"),
     "/grammar.html": ("grammar.html", "text/html; charset=utf-8"),
     "/stage.js": ("stage.js", "text/javascript; charset=utf-8"),
     "/graph.js": ("graph.js", "text/javascript; charset=utf-8"),
     "/stage.css": ("stage.css", "text/css; charset=utf-8"),
+    "/package_example.json": ("package_example.json", "application/json; charset=utf-8"),
+    "/theory.html": ("theory.html", "text/html; charset=utf-8"),
+    "/theory.js": ("theory.js", "text/javascript; charset=utf-8"),
+    "/theory_example.nod": ("theory_example.nod", "text/plain; charset=utf-8"),
 }
 MAX_BODY = 150_000
 
@@ -72,7 +78,7 @@ class Handler(BaseHTTPRequestHandler):
             self.close_connection = True
             self.json_reply(403, {"error": {"message": "Cross-origin requests are not allowed"}})
             return
-        if self.path not in ("/api/run", "/api/tokenize", "/api/parse"):
+        if self.path not in ("/api/run", "/api/tokenize", "/api/parse", "/api/theory"):
             self.close_connection = True
             self.json_reply(404, {"error": {"message": "Not found"}})
             return
@@ -90,11 +96,24 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             payload = json.loads(self.rfile.read(length).decode("utf-8"))
-            if not isinstance(payload, dict) or set(payload) != {"source"} or not isinstance(payload["source"], str):
-                raise LanguageError("input", "Provide exactly one source text field")
+            if not isinstance(payload, dict) or "source" not in payload or set(payload) - {"source", "packages"} or not isinstance(payload["source"], str):
+                raise LanguageError("input", "Provide source text and optional package sources")
+            packages = payload.get("packages", {})
+            if not isinstance(packages, dict) or any(
+                not isinstance(name, str) or not isinstance(source, str) for name, source in packages.items()
+            ):
+                raise LanguageError("input", "packages must map package names to source text")
             if self.path == "/api/run":
-                result = run_source(payload["source"])
+                result = run_source(payload["source"], packages)
+            elif self.path == "/api/theory":
+                if packages:
+                    raise LanguageError("input", "Formal checking accepts a single source, not package sources")
+                checked = run_source(payload["source"], check_only=True)
+                result = {"syntax": {key: checked[key] for key in ("final", "tokens", "occurrences", "nodes")},
+                          "theory": checked["theory"]}
             else:
+                if packages:
+                    raise LanguageError("input", "Stage inspection accepts a single source")
                 result = inspect_stage(payload["source"], syntax=self.path == "/api/parse")
         except (json.JSONDecodeError, UnicodeDecodeError) as error:
             self.json_reply(400, {"ok": False, "error": {"stage": "input", "message": f"Invalid UTF-8 JSON: {error}"}})

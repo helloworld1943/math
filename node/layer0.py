@@ -58,12 +58,12 @@ class RootDeletionError(ValueError):
 
 
 class UnboundOutputError(ValueError):
-    """A non-root node's required output 0 has no target at commit."""
+    """One or more fixed output slots have no target at commit."""
 
     def __init__(self, nodes: frozenset[Node]) -> None:
         self.nodes = nodes
         numbers = sorted(node.number for node in nodes)
-        super().__init__(f"Output 0 has no target on nodes: {numbers}")
+        super().__init__(f"Unbound output slots on nodes: {numbers}")
 
 
 class InvalidNodePositionError(ValueError):
@@ -153,7 +153,7 @@ class _GraphQueries:
 
 @dataclass(frozen=True, slots=True)
 class GraphSnapshot(_GraphQueries):
-    """A fixed ordered graph with bound output 0 and optional later targets."""
+    """A fixed ordered graph with all output slots bound."""
 
     _links: Mapping[Node, Sequence[Node | None]]
     root: Node
@@ -184,7 +184,7 @@ class GraphSnapshot(_GraphQueries):
         unbound = frozenset(
             source
             for source, targets in frozen.items()
-            if source is not self.root and targets[0] is None
+            if any(target is None for target in targets)
         )
         if unbound:
             raise UnboundOutputError(unbound)
@@ -294,7 +294,7 @@ class Graph(_GraphQueries):
                     targets[number] = None
 
     def commit(self) -> GraphSnapshot:
-        """Require output 0; validate and preserve optional later output slots."""
+        """Require every slot to be bound and retain the validated snapshot."""
         snapshot = GraphSnapshot(self._links, self.root)
         self._snapshot = snapshot
         return snapshot

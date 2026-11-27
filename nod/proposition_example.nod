@@ -1,0 +1,80 @@
+
+public class Functions{}
+class Truth : Prop {}
+constructor func Truth() Truth {}
+
+class Falsehood : Prop {}
+
+class Any : Sort(2) {
+    const A : Type;
+    TypeDef B : A -> Prop;
+    const b : B;
+}
+
+constructor func Any(A a,B b) Prop {
+    this.A = a;
+    this.b = b;
+}
+
+constructor func Any.alternative(A a,B b) Prop {
+    this.A = a;
+    this.b = b;
+}
+
+static func Functions.always(Nat n) Prop { return Truth; }
+static func Functions.never(Nat n) Prop { return Falsehood; }
+
+const Prop P = Any(Nat,Functions.always);
+const Prop P2 = Any.alternative(Nat,Functions.always);
+const Prop Q = Any(Nat,Functions.never);
+
+class Evidence : P {
+    TypeDef H : ((x:P.A) -> P.b(x));
+    const h : H;
+}
+
+constructor func Evidence(H h) Evidence {
+    this.h = h;
+}
+
+static func H Evidence.prove { return Truth(); }
+P witness = Evidence(Evidence.prove);
+
+class Exists : Sort(2) {
+    const A : Type;
+    TypeDef B : A -> Prop;
+    const b : B;
+}
+
+constructor func Exists(A a,B b) Prop {
+    this.A = a;
+    this.b = b;
+}
+
+const Prop Some = Exists(Nat,Functions.always);
+const Prop SomeFalse = Exists(Nat,Functions.never);
+
+class SomeEvidence : Some {
+    const witness : Some.A;
+    TypeDef H : Some.b(witness);
+    const h : H;
+}
+
+constructor func SomeEvidence(Some.A witness, H h) Some {
+    this.witness = witness;
+    this.h = h;
+}
+
+Some existential = SomeEvidence(Nat(3),Truth());
+
+print(P);
+print(P.A);
+print(P.b(Nat(0)));
+print(witness);
+print(P == P2);
+// Q is a proposition description; no evidence of Q is constructed.
+print(Q);
+print(Some);
+print(existential);
+// SomeFalse is also a proposition description without constructed evidence.
+print(SomeFalse);

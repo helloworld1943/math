@@ -2,7 +2,8 @@
 
 This is the graph foundation for Nod. It has nodes, an ordered node array,
 and numbered output slots. Types, variables, functions, and execution
-rules are not built in. Layers 1, 2, and 3 are paused.
+rules are not built in. The language and its checker are implemented in
+[Nod](../nod/nod.md).
 
 ## 1. A link means "based on this information"
 
@@ -102,20 +103,20 @@ b[2] -> a
 Output 1 still exists. Output 2 does not shift down to fill the gap.
 Deleting b removes all slots owned by b.
 
-## 6. Output 0 is required at commit
+## 6. Every output is required at commit
 
-Every non-root node must have a target in output 0 before commit.
-It must be an existing earlier node, like every other nonempty target.
+Every output slot must target an existing earlier node before commit.
+Root has zero slots, so it meets this rule without any targets.
 
-Output 0 may be empty while editing. Commit then raises `UnboundOutputError`
-and reports every node missing that target.
+Any slot may be empty while editing. Commit then raises `UnboundOutputError`
+whose `.nodes` reports all nodes with at least one empty slot.
 
-Later outputs may remain empty after commit:
+This is a valid draft, but not a committed snapshot:
 
 ```text
 a[0] -> root
 b[0] -> a
-b[1] -> None       allowed after commit
+b[1] -> None       blocks commit
 c[0] -> b
 ```
 
@@ -130,7 +131,7 @@ empty after commit. This connects every committed node to root without
 a separate connectivity traversal.
 
 Later, Nod may interpret output 0 as a node's context.
-Layer 0 only requires the connection; it does not implement context types.
+The Node layer requires every connection; it does not implement context types.
 
 ## 7. One source cannot have duplicate targets
 
@@ -138,8 +139,8 @@ Two outputs of one node cannot point to the same nonempty target,
 even while editing. That edit raises `DuplicateLinkError` without
 changing any connection.
 
-Several later slots may be empty. `None` is not a node and is not a
-duplicate target.
+Several slots may be empty while drafting. `None` is not a node and is not a
+duplicate target. Every empty slot must be repaired before commit.
 
 Different sources may share a target. Distinct targets may also share
 their own dependencies.
@@ -154,7 +155,7 @@ Fill 0:    b[0] -> a,    b[1] -> root    commit succeeds
 ```
 
 You may instead clear output 1 first. Then output 0 can stay connected
-throughout the swap.
+throughout the swap, but intermediate commits are still blocked.
 
 ## 8. Deleting a target leaves its users' slots in place
 
@@ -182,7 +183,7 @@ empty target. Nothing is renumbered.
 Commit fails because node 3's output 0 is empty.
 Set `3[0] -> root 0`, and commit succeeds.
 
-If deletion empties only a later output, commit is still allowed.
+If deletion empties a later output, commit is blocked in exactly the same way.
 Dependencies and users are not deleted automatically.
 
 ## 9. Three connection queries
@@ -245,7 +246,7 @@ from node import Graph, InputLink
 
 graph = Graph()
 a = graph.create_node()
-b = graph.create_node(3)
+b = graph.create_node(2)
 c = graph.create_node()
 
 graph.edit_link(a, 0, graph.root)
@@ -255,13 +256,13 @@ graph.edit_link(c, 0, b)
 snapshot = graph.commit()
 
 assert graph.position(b) == 2
-assert graph.get_output_count(b) == 3
+assert graph.get_output_count(b) == 2
 assert graph.get_output(b, 1) is a
-assert snapshot.get_output(b, 2) is None
+assert snapshot.get_output(b, 1) is a
 assert graph.inputs(a) == [InputLink(2, 1)]
 ```
 
-b's optional output 2 is empty, but every output 0 is connected.
+Every slot is connected. Empty slots are permitted in drafts only.
 The code names a, b, and c are shown in the animation next to their IDs.
 
 Continue the example to delete b and reconnect c:
@@ -293,8 +294,8 @@ Queries on `graph` read current edits immediately.
 Commit creates a fixed `GraphSnapshot` and replaces that property.
 The graph retains one latest successful snapshot, not a history.
 
-Queries on a snapshot read fixed committed data, including optional empty
-slots. Later edits do not change it. Callers may retain an older returned
+Queries on a snapshot read fixed committed data with all slots connected.
+Later edits do not change it. Callers may retain an older returned
 snapshot if they choose; the graph does not keep an old-snapshot list.
 
 A failed commit leaves the draft editable and the latest successful
@@ -311,7 +312,7 @@ Invalid creation counts or positions raise `InvalidOutputCountError` or
 `InvalidNodePositionError`.
 Order violations raise `InvalidLinkOrderError`.
 Duplicate targets raise `DuplicateLinkError`.
-An empty required output 0 at commit raises `UnboundOutputError`.
+Any empty output at commit raises `UnboundOutputError`.
 Root cannot be deleted or given output slots.
 
 Direct snapshot construction checks the same rules and copies its input

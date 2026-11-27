@@ -1,0 +1,7 @@
+{
+  "source": "package demo;\nimport geometry;\nimport geometry.tools;\n\ngeometry.Point p = geometry.Functions.makePoint(1, 2);\ngeometry.Point q = p;\nq.move(3, 4);\nprint(p.sum());\ngeometry.Point copied = p.Copy();\ncopied.move(10, 0);\nprint(p.sum());\nprint(copied.sum());\nprint(geometry.tools.Functions.label());\nNat count = 1000000000000000000000000000000;\nInt offset = -5;\nFloat ratio = 1.5;\nBool ready = true;\nprint(count + 1);\nprint(offset);\nprint(ratio);\nprint(ready);",
+  "packages": {
+    "geometry": "package geometry;\npublic class Functions{}\n\npublic class Point { Int x; Int y; }\nstatic func Functions.secret() Int { return 42; }\npublic static func Functions.makePoint(Int x, Int y) Point {\n    return Point{x:x, y:y};\n}\npublic func Point.sum() Int { return this.x + this.y; }\npublic func Point.move(Int dx, Int dy) Point {\n    this.x = this.x + dx;\n    this.y = this.y + dy;\n    return this;\n}",
+    "geometry.tools": "package geometry.tools;\npublic class Functions{}\n\npublic static func Functions.label() Int {\n    return geometry.Functions.secret();\n}"
+  }
+}

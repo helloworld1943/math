@@ -288,7 +288,7 @@ class NodeAnimationTests(unittest.TestCase):
                 missing = frozenset(
                     run.handles[source]
                     for source, targets in fixture["state"]["outputs"].items()
-                    if source != "root" and targets[0] is None
+                    if any(target is None for target in targets)
                 )
                 if missing:
                     with self.assertRaises(UnboundOutputError) as raised:

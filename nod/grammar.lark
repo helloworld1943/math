@@ -1,46 +1,78 @@
-start: item*
-?item: function | statement
-function: "func" name "(" parameters ")" type block
+start: package_decl? import_decl* item*
+package_decl: "package" path [";"]
+import_decl: "import" path [";"]
+path: name ("." name)*
+item: function | static_function | constructor | class_decl | public_item | statement | check_command
+public_item: "public" (function | static_function | constructor | class_decl | declaration ";")
+check_command: "check" expression ";"
+static_function: "static" function
+function: "func" path "(" parameters ")" result_type block
+        | "func" type path block -> contract_function
+        | "func" path "(" parameters ")" block -> procedure
+constructor: "constructor" "func" path "(" parameters ")" result_type block
+result_type: "Sort" "(" INTEGER ")" -> sort_type
+           | path -> named_type
+class_decl: "class" name class_sort? "{" field* "}" [";"]
+class_sort: ":" path -> class_sort_name
+          | ":" "Sort" "(" INTEGER ")" -> class_sort_level
+field: type name? ";"
+     | "TypeDef" name ":" expression ";" -> type_alias
+     | "public" "TypeDef" name ":" expression ";" -> public_type_alias
+     | "public" type name? ";" -> public_field
+     | "const" field -> const_field
+     | "public" "const" field -> public_const_field
 parameters: [parameter ("," parameter)*]
-parameter: type name
+parameter: type name?
+         | "const" parameter -> const_parameter
 block: "{" statement* "}"
-?statement: declaration ";"
-          | assignment ";"
-          | print_stmt ";"
-          | return_stmt
-          | if_stmt
-          | while_stmt
-          | expression ";" -> expression_statement
-declaration: type name "=" expression
-assignment: name "=" expression
+statement: declaration ";"
+         | assignment ";"
+         | print_stmt ";"
+         | return_stmt
+         | if_stmt
+         | while_stmt
+         | expression ";" -> expression_statement
+declaration: type name ["=" expression]
+           | "const" declaration -> const_declaration
+assignment: postfix "=" expression
 print_stmt: "print" "(" expression ")"
 return_stmt: "return" expression [";"]
 if_stmt: "if" "(" expression ")" block ["else" block]
 while_stmt: "while" "(" expression ")" block
-?expression: or_expr
-?or_expr: or_expr OR and_expr -> binary
-        | and_expr
-?and_expr: and_expr AND equality -> binary
-         | equality
-?equality: equality EQ comparison -> binary
-         | comparison
-?comparison: comparison CMP sum -> binary
-           | sum
-?sum: sum ADD product -> binary
-    | product
-?product: product MUL unary -> binary
-        | unary
-?unary: (UNARY | ADD) unary -> unary
-      | atom
-?atom: INTEGER -> integer
-     | TRUE -> boolean
-     | FALSE -> boolean
-     | name "(" arguments ")" -> call
-     | name -> variable
-     | "(" expression ")"
+expression: arrow_expr
+          | arrow_expr ":" arrow_expr -> annotation
+arrow_expr: or_expr
+          | or_expr ARROW expression -> arrow_type
+or_expr: or_expr OR and_expr -> binary
+       | and_expr
+and_expr: and_expr AND equality -> binary
+        | equality
+equality: equality EQ comparison -> binary
+        | comparison
+comparison: comparison CMP sum -> binary
+          | sum
+sum: sum ADD product -> binary
+   | product
+product: product MUL unary -> binary
+       | unary
+unary: (UNARY | ADD) unary -> unary
+     | postfix
+postfix: atom
+       | postfix "." name -> member
+       | postfix "(" arguments ")" -> call
+       | postfix "{" initializers "}" -> class_literal
+atom: INTEGER -> integer
+    | DECIMAL -> decimal
+    | TRUE -> boolean
+    | FALSE -> boolean
+    | NIL -> nil_literal
+    | path -> variable
+    | "(" expression ")"
+    | "Sort" "(" INTEGER ")" -> sort
 arguments: [expression ("," expression)*]
-type: "int" -> int_type
-    | "bool" -> bool_type
+initializers: [initializer ("," initializer)*]
+initializer: name ":" expression
+type: expression
 name: NAME
 OR: "||" | "|"
 AND: "&&" | "&"
@@ -49,9 +81,12 @@ CMP: "<=" | ">=" | "<" | ">"
 ADD: "+" | "-"
 MUL: "*" | "/" | "%"
 UNARY: "!"
+ARROW: "->"
 TRUE.2: /true(?![A-Za-z0-9_])/
 FALSE.2: /false(?![A-Za-z0-9_])/
-NAME: /(?!(?:int|bool|func|return|print|if|else|while|true|false)\b)[A-Za-z_][A-Za-z0-9_]*/
+NIL.2: /nil(?![A-Za-z0-9_])/
+DECIMAL: /[0-9]+\.[0-9]+([eE][+-]?[0-9]+)?|[0-9]+[eE][+-]?[0-9]+/
+NAME: /(?!(?:int|bool|Void|func|static|class|struct|constructor|const|TypeDef|package|import|public|return|print|if|else|while|true|false|nil|Sort|fun|axiom|def|check)\b)[A-Za-z_][A-Za-z0-9_]*/
 INTEGER: /[0-9]+/
 %import common.WS
 %ignore WS

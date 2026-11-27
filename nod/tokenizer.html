@@ -9,7 +9,7 @@
 <body data-stage="tokenizer">
   <main>
     <header><div><p class="eyebrow">Nod / 1. Tokenizer</p><h1>Raw text becomes categorized nodes.</h1><p class="intro">Explore the actual lexical definitions, represented as Node graphs. Then edit source and see only tokenization: no grammar matching, type checking, or execution.</p></div></header>
-    <nav class="stage-nav" aria-label="Language stages"><a href="/">Full playground</a><a href="/tokenizer.html" aria-current="page">Tokenizer</a><a href="/grammar.html" id="next-stage">Grammar</a></nav>
+    <nav class="stage-nav" aria-label="Language stages"><a href="/">Full playground</a><a href="/tokenizer.html" aria-current="page">Tokenizer</a><a href="/grammar.html" id="next-stage">Grammar</a><a href="/theory.html">Type theory</a></nav>
     <section class="rule-layout">
       <div class="panel">
         <h2>Tokenizer rule definitions</h2><label for="rule-picker">Choose a token category</label>
@@ -26,12 +26,13 @@
     </section>
     <section class="workspace stage-example">
       <div class="panel"><h2>Try raw input</h2><label class="sr-only" for="source">Source to tokenize</label>
-        <textarea id="source" spellcheck="false">int x = 5;
-bool z = true;
+        <textarea id="source" spellcheck="false">Int x = 5;
+Bool z = true;
 print(z);</textarea>
         <div class="editor-controls"><label><input id="auto" type="checkbox" checked> Update automatically</label><button id="build" class="primary" type="button">Tokenize</button></div>
+        <p class="hint">Each occurrence creates its own node. There are no singleton or reuse modes.</p>
         <div id="status" role="status" aria-live="polite">Ready to tokenize.</div><p id="provenance" class="hint"></p>
-        <p class="hint">Try <code>int x = ;</code>: lexical tokens are valid even though the program is not grammatical. A character such as @ is a tokenizer error.</p>
+        <p class="hint">Try <code>Int x = ;</code>: lexical tokens are valid even though the program is not grammatical. A character such as @ is a tokenizer error.</p>
       </div>
       <section class="panel tokens"><h2>Ordered token occurrences</h2><p id="example-count" class="hint"></p><ol id="tokens" aria-label="Generated token sequence"></ol>
         <p class="hint">Order comes from the source sequence, not dependency arrows. Repeated spellings remain distinct occurrences. Click an occurrence, then “Open related rule” in the inspector.</p>

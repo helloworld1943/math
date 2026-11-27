@@ -7,15 +7,15 @@ from .rules import rule_graphs
 
 class StageTests(unittest.TestCase):
     def test_tokenizer_does_not_require_valid_grammar(self):
-        program = tokenize("int x = ;")
-        self.assertEqual([program.text(node) for node in program.tokens], ["int", "x", "=", ";"])
+        program = tokenize("Int x = ;")
+        self.assertEqual([program.text(node) for node in program.tokens], ["Int", "x", "=", ";"])
         self.assertEqual(program.description(program.final).kind, "TokenSequence")
         self.assertEqual(
             {program.description(node).kind for node in program.graph.node_order if node not in program.tokens},
             {"Root", "TokenSequence"},
         )
         with self.assertRaises(LanguageError) as caught:
-            parse("int x = ;")
+            parse("Int x = ;")
         self.assertEqual(caught.exception.stage, "syntax")
 
     def test_tokenizer_still_rejects_bad_characters(self):
@@ -24,7 +24,7 @@ class StageTests(unittest.TestCase):
         self.assertEqual(caught.exception.stage, "tokenizer")
 
     def test_grammar_inspection_neither_checks_types_nor_executes(self):
-        for source in ("int x=true;", "print(unknown);", "print(1/0);", "while(true){}"):
+        for source in ("Int x=true;", "print(unknown);", "print(1/0);", "while(true){}"):
             result = inspect_stage(source, syntax=True)
             self.assertNotIn("output", result)
             self.assertNotIn("variables", result)
@@ -33,7 +33,7 @@ class StageTests(unittest.TestCase):
                 run_source(source)
 
     def test_tokenizer_and_parser_preserve_the_same_token_occurrences(self):
-        source = "int x=5; bool z=true; print(x); // comment"
+        source = "Int x=5; Bool z=true; print(x); // comment"
         lexical, syntax = tokenize(source), parse(source)
         self.assertEqual(
             [(lexical.description(node).kind, node.number, node.value) for node in lexical.tokens],
@@ -50,7 +50,7 @@ class StageTests(unittest.TestCase):
             self.assertTrue(result["nodes"])
 
     def test_lexical_and_size_limits_still_apply_to_tokenizer(self):
-        for source in (" " * 32001, "1" * 257):
+        for source in (" " * 32001, "1" * 1025):
             with self.assertRaises(LanguageError) as caught:
                 inspect_stage(source, syntax=False)
             self.assertEqual(caught.exception.stage, "limit")
@@ -72,7 +72,8 @@ class RuleGraphTests(unittest.TestCase):
             self.assertEqual(shown["priority"], terminal.priority)
             self.assertEqual(shown["ignored"], terminal.name in self.parser.ignore_tokens)
         self.assertTrue(any(rule["name"] == "INTEGER" for rule in actual))
-        self.assertTrue(any(rule["name"] == "INT" and rule["pattern"] == "int" for rule in actual))
+        self.assertTrue(any(rule["name"] == "NAME" for rule in actual))
+        self.assertFalse(any(rule["name"] in ("INT", "BOOL", "AXIOM", "DEF") for rule in actual))
         self.assertTrue(any(rule["ignored"] for rule in actual))
 
     def test_every_grammar_alternative_matches_actual_compiled_production(self):
@@ -89,6 +90,16 @@ class RuleGraphTests(unittest.TestCase):
             self.assertEqual(rule["alternatives"], grouped[rule["name"]])
         self.assertTrue(any(rule["helper"] for rule in shown))
         self.assertTrue(any("-> binary" in rule["source"] for rule in shown))
+        self.assertFalse({"axiom", "definition", "legacy_result"} & set(grouped))
+        self.assertTrue(any(rule["name"] == "result_type" for rule in shown))
+
+    def test_no_grammar_rule_conditionally_inlines_its_category(self):
+        self.assertTrue(all(not rule.options.expand1 for rule in self.parser.rules))
+        self.assertTrue(all(
+            not alternative["inline"]
+            for rule in self.rules["grammar"]["rules"]
+            for alternative in rule["alternatives"]
+        ))
 
     def test_rule_graphs_have_real_bytes_and_valid_backward_links(self):
         for stage in ("tokenizer", "grammar"):

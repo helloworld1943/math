@@ -1,0 +1,98 @@
+
+public class Functions{public TypeDef Unary:Int->Int;}
+// A class may carry a type, followed by values that depend on it.
+// Type means Sort(1); this data class lives one universe higher.
+class Box : Sort(2) {
+    const A : Type;
+    value : A;
+}
+class BoxInput : Sort(2) {
+    const A : Type;
+    value : A;
+}
+
+constructor func Box.make(BoxInput input) Box {
+    this.A = input.A;
+    this.value = input.value;
+}
+
+const BoxInput numberInput = BoxInput{A:Nat, value:5};
+const Box numbers = Box.make(numberInput);
+numbers.value = 6; // A stays fixed; this field may change within that type.
+print(numbers.value);
+
+const BoxInput flagInput = BoxInput{A:Bool, value:true};
+const Box flags = Box.make(flagInput);
+print(flags.value);
+
+// Functions are values. There is no native Pi function or keyword.
+static func Functions.increment(x:Int) Int {
+    return x + 1;
+}
+static func Functions.apply(x:Int, operation:Functions.Unary) Int {
+    return operation(x);
+}
+print(Functions.apply(3, Functions.increment));
+
+// A universe marker is for checking, not a mutable runtime universe number.
+// Classes in Prop do not get default/nil/field-based proof creation.
+class Truth : Prop {}
+constructor func Truth.intro() Truth {}
+
+class Any : Prop {
+    const A : SortU;
+    TypeDef B : A -> Prop;
+    const b : B;
+    TypeDef H : ((x : A) -> b(x));
+    const h : H;
+}
+class AnyInput : Sort(2) {
+    const A : Type;
+    TypeDef B : A -> Prop;
+    const b : B;
+    TypeDef H : ((x : A) -> b(x));
+    const h : H;
+}
+
+constructor func Any.intro(AnyInput input) Any {
+    this.A = input.A;
+    this.b = input.b;
+    this.h = input.h;
+}
+
+static func Functions.predicate(x:Nat) Prop {
+    return Truth;
+}
+static func Functions.evidence(x:Nat) Truth {
+    return Truth.intro();
+}
+
+const AnyInput evidenceInput = AnyInput{A:Nat, b:Functions.predicate, h:Functions.evidence};
+Any proof = Any.intro(evidenceInput);
+print(proof); // Opaque proof display; no unrestricted extraction of A or B.
+
+// A const field stays fixed even when the object has another alias.
+class Config {
+    const Nat length;
+    Int spare;
+}
+Config config = Config{length:3};
+Config alias = config;
+alias.spare = 9;
+print(config.spare);
+// alias.length = 4; would be rejected.
+
+// A reusable dependent function is a field of a constructed class.
+class Identity : Sort(2) {
+    const A : Type;
+    TypeDef Apply : A -> A;
+    TypeDef I : ((T:Type) -> (x:T) -> T);
+    const apply : Apply;
+}
+static func I Identity.identity { return x; }
+constructor func Identity(A a) Identity {
+    this.A = a;
+    this.apply = Identity.identity(a);
+}
+const Identity identity = Identity(Nat);
+print(identity.apply(5));

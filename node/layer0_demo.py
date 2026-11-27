@@ -12,20 +12,18 @@ from node import (
 def main() -> None:
     graph = Graph()
     node1 = graph.create_node()
-    node2 = graph.create_node(3)
+    node2 = graph.create_node(2)
     graph.edit_link(node1, 0, graph.root)
     graph.edit_link(node2, 0, graph.root)
     graph.edit_link(node2, 1, node1)
     snapshot = graph.commit()
 
-    assert graph.get_output_count(node2) == 3
+    assert graph.get_output_count(node2) == 2
     assert graph.get_output(node2, 0) is graph.root
     assert graph.get_output(node2, 1) is node1
-    assert graph.get_output(node2, 2) is None
-    assert snapshot.get_output(node2, 2) is None
     assert graph.inputs(graph.root) == [InputLink(1, 0), InputLink(2, 0)]
     assert graph.inputs(node1) == [InputLink(2, 1)]
-    print("READ: node 2 has three slots; output 2 is empty in draft and snapshot.")
+    print("READ: node 2 has two slots; every committed slot is connected.")
     print("INPUTS TO ROOT:", graph.inputs(graph.root))
 
     try:
@@ -50,7 +48,7 @@ def main() -> None:
     print("SWAP: clear output 0 first; then retarget the two fixed slots.")
 
     graph.delete_node(node1)
-    assert graph.get_output_count(node2) == 3
+    assert graph.get_output_count(node2) == 2
     assert graph.get_output(node2, 0) is None
     try:
         graph.commit()
@@ -76,8 +74,15 @@ def main() -> None:
     snapshot = graph.commit()
     assert graph.snapshot is snapshot
     assert snapshot.inputs(node3) == [InputLink(2, 0)]
-    assert snapshot.get_output(node2, 2) is None
-    print("OPTIONAL: output 2 stays empty in the successful snapshot.")
+    graph.edit_link(node2, 1, None)
+    try:
+        graph.commit()
+    except UnboundOutputError as error:
+        print(f"EXPECTED LATER-SLOT REJECTION: {error}")
+    else:
+        raise AssertionError("Later slots must also be bound")
+    graph.edit_link(node2, 1, graph.root)
+    graph.commit()
     print("LATEST COMMIT: order [0, 3, 2], no views, traversal API, or snapshot history.")
 
 

@@ -8,4 +8,5 @@
 .node-array button{width:44px;background:#24483d;color:#ddede2;border-color:#638d74;padding:8px 0;border-radius:3px;font:10px ui-monospace,monospace}
 #rule-status{font-size:11px;line-height:1.7;color:#65746b;overflow-wrap:anywhere}#rule-status[data-error=true]{color:#934a38}
 #rule-facts{white-space:pre-wrap;overflow-wrap:anywhere}.tokens ol{max-height:230px}
+.report-list{display:grid;gap:12px}.report{padding:12px;background:#edf1e8;border-radius:8px;overflow-wrap:anywhere}.report strong{font:12px/1.8 ui-monospace,monospace}.report-buttons{display:flex;gap:6px;flex-wrap:wrap}#graph-mode{font:inherit;padding:7px;border-radius:5px;border:1px solid #638d74}
 @media(max-width:900px){.rule-layout{grid-template-columns:minmax(0,1fr)}}

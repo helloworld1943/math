@@ -1,0 +1,18 @@
+// Named class specifications are formally checked, without running effects.
+class Box : Sort(2) {
+    const A : Type;
+    value : A;
+}
+check Box : Sort(2);
+check Box : Sort(2);
+
+class Contracts : Sort(2) {
+    public TypeDef Identity : ((T:Type) -> (x:T) -> T);
+    public TypeDef Natural : Nat;
+}
+static func Identity Contracts.identity { return x; }
+check Contracts : Sort(2);
+check Contracts.Identity : Sort(2);
+check Contracts.Natural : Type;
+// Checked bodies are not executed by this page.
+print(1);

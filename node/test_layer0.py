@@ -91,11 +91,11 @@ class Layer0Tests(unittest.TestCase):
         graph = Graph()
         a = graph.create_node(3)
         graph.edit_link(a, 0, graph.root)
-        snapshot = graph.commit()
-        self.assertIs(graph.snapshot, snapshot)
-        self.assertEqual(snapshot.get_output_count(a), 3)
-        self.assertEqual(self._outputs(snapshot, a), (graph.root, None, None))
-        self.assertEqual(snapshot.inputs(graph.root), [InputLink(a.number, 0)])
+        with self.assertRaises(UnboundOutputError) as raised:
+            graph.commit()
+        self.assertEqual(raised.exception.nodes, frozenset((a,)))
+        self.assertIsNone(graph.snapshot)
+        self.assertEqual(self._outputs(graph, a), (graph.root, None, None))
 
     def test_commit_requires_output_zero_on_every_non_root_node(self) -> None:
         graph = Graph()
@@ -121,16 +121,18 @@ class Layer0Tests(unittest.TestCase):
         with self.assertRaises(UnboundOutputError) as raised:
             GraphSnapshot({root: (), a: (None, root)}, root)
         self.assertEqual(raised.exception.nodes, frozenset((a,)))
-        snapshot = GraphSnapshot({root: (), a: (root, None, None)}, root)
+        with self.assertRaises(UnboundOutputError):
+            GraphSnapshot({root: (), a: (root, None, None)}, root)
+        snapshot = GraphSnapshot({root: (), a: (root,)}, root)
         self.assertIs(snapshot.get_output(a, 0), root)
-        self.assertIsNone(snapshot.get_output(a, 2))
+        self.assertEqual(snapshot.get_output_count(a), 1)
 
     def test_empty_and_nonexistent_slots_have_different_results(self) -> None:
         graph = Graph()
         a = graph.create_node(2)
         self.assertIsNone(graph.get_output(a, 0))
         graph.edit_link(a, 0, graph.root)
-        for reader in (graph, graph.commit()):
+        for reader in (graph,):
             self.assertIs(reader.get_output(a, 0), graph.root)
             self.assertIsNone(reader.get_output(a, 1))
             with self.assertRaises(UnknownLinkError):
@@ -143,7 +145,7 @@ class Layer0Tests(unittest.TestCase):
         graph.edit_link(a, 0, graph.root)
         graph.edit_link(b, 0, graph.root)
         graph.edit_link(b, 2, a)
-        for reader in (graph, graph.commit()):
+        for reader in (graph,):
             self.assertEqual(reader.get_output_count(b), 3)
             self.assertIsNone(reader.get_output(b, 1))
             self.assertIs(reader.get_output(b, 2), a)
@@ -165,7 +167,9 @@ class Layer0Tests(unittest.TestCase):
         a = graph.create_node(4)
         graph.edit_link(a, 0, graph.root)
         graph.edit_link(a, 3, None)
-        self.assertEqual(self._outputs(graph.commit(), a), (graph.root, None, None, None))
+        self.assertEqual(self._outputs(graph, a), (graph.root, None, None, None))
+        with self.assertRaises(UnboundOutputError):
+            graph.commit()
 
     def test_inputs_return_permanent_source_ids_and_output_numbers(self) -> None:
         graph, a, b, c = self._example()
@@ -196,8 +200,9 @@ class Layer0Tests(unittest.TestCase):
         graph, a, b, c = self._example()
         graph.edit_link(b, 1, None)
         graph.edit_link(b, 0, a)
+        graph.edit_link(b, 1, graph.root)
         for reader in (graph, graph.commit()):
-            self.assertEqual(reader.inputs(graph.root), [InputLink(a.number, 0)])
+            self.assertEqual(reader.inputs(graph.root), [InputLink(a.number, 0), InputLink(b.number, 1)])
             self.assertEqual(reader.inputs(a), [InputLink(b.number, 0)])
             self.assertEqual(reader.inputs(b), [InputLink(c.number, 0)])
 
@@ -254,9 +259,13 @@ class Layer0Tests(unittest.TestCase):
     def test_swap_can_clear_a_later_slot_and_commit_each_stage(self) -> None:
         graph, a, b, _ = self._example()
         graph.edit_link(b, 1, None)
-        self.assertEqual(self._outputs(graph.commit(), b), (graph.root, None))
+        with self.assertRaises(UnboundOutputError):
+            graph.commit()
+        self.assertEqual(self._outputs(graph, b), (graph.root, None))
         graph.edit_link(b, 0, a)
-        self.assertEqual(self._outputs(graph.commit(), b), (a, None))
+        with self.assertRaises(UnboundOutputError):
+            graph.commit()
+        self.assertEqual(self._outputs(graph, b), (a, None))
         graph.edit_link(b, 1, graph.root)
         self.assertEqual(self._outputs(graph.commit(), b), (a, graph.root))
 
@@ -289,11 +298,13 @@ class Layer0Tests(unittest.TestCase):
         graph.edit_link(d, 1, a)
         graph.edit_link(d, 2, b)
         graph.delete_node(a)
-        snapshot = graph.commit()
-        self.assertEqual(self._outputs(snapshot, d), (graph.root, None, b))
-        self.assertEqual(self._outputs(snapshot, b), (graph.root, None))
-        self.assertIs(snapshot.get_output(c, 0), b)
-        self.assertEqual(snapshot.get_output_count(d), 3)
+        with self.assertRaises(UnboundOutputError) as raised:
+            graph.commit()
+        self.assertEqual(raised.exception.nodes, frozenset((b, d)))
+        self.assertEqual(self._outputs(graph, d), (graph.root, None, b))
+        self.assertEqual(self._outputs(graph, b), (graph.root, None))
+        self.assertIs(graph.get_output(c, 0), b)
+        self.assertEqual(graph.get_output_count(d), 3)
 
     def test_deleting_a_user_keeps_its_dependencies(self) -> None:
         graph, a, b, c = self._example()
@@ -353,10 +364,14 @@ class Layer0Tests(unittest.TestCase):
         self.assertEqual(before.position(b), 2)
         self.assertEqual(middle.position(b), 3)
         graph.delete_node(inserted)
+        with self.assertRaises(UnboundOutputError):
+            graph.commit()
+        self.assertEqual(self._outputs(graph, b), (graph.root, None))
+        graph.edit_link(b, 1, a)
         after = graph.commit()
         self.assertEqual(after.node_order, (graph.root, a, b, c))
         self.assertEqual(after.position(b), 2)
-        self.assertEqual(self._outputs(after, b), (graph.root, None))
+        self.assertEqual(self._outputs(after, b), (graph.root, a))
         self.assertIs(before.get_output(b, 1), a)
 
     def test_root_stays_first_when_inserting_at_first_and_last_allowed_positions(self) -> None:
@@ -473,6 +488,11 @@ class Layer0Tests(unittest.TestCase):
             graph.edit_link(b, 1, graph.root)
         self.assertIs(graph.snapshot, first)
         graph.edit_link(b, 1, None)
+        with self.assertRaises(UnboundOutputError):
+            graph.commit()
+        self.assertIs(graph.snapshot, first)
+        graph.edit_link(b, 0, first.node_order[1])
+        graph.edit_link(b, 1, graph.root)
         latest = graph.commit()
         self.assertIs(graph.snapshot, latest)
         self.assertIsNot(latest, first)
@@ -483,12 +503,12 @@ class Layer0Tests(unittest.TestCase):
 
     def test_snapshot_constructor_copies_nullable_slot_data_and_mapping_order(self) -> None:
         root, a, b = Node(0), Node(7), Node(2)
-        links = {root: [], a: [root, None], b: [a]}
+        links = {root: [], a: [root], b: [a]}
         snapshot = GraphSnapshot(links, root)
         links[a].clear()
         links.clear()
         self.assertEqual(snapshot.node_order, (root, a, b))
-        self.assertEqual(self._outputs(snapshot, a), (root, None))
+        self.assertEqual(self._outputs(snapshot, a), (root,))
         self.assertEqual(snapshot.inputs(a), [InputLink(b.number, 0)])
 
     def test_snapshot_constructor_rejects_invalid_structure(self) -> None:
@@ -498,7 +518,7 @@ class Layer0Tests(unittest.TestCase):
         with self.assertRaises(InvalidOutputCountError):
             GraphSnapshot({root: (), a: ()}, root)
         with self.assertRaises(DuplicateLinkError):
-            GraphSnapshot({root: (), a: (root, root, None)}, root)
+            GraphSnapshot({root: (), a: (root, root)}, root)
         with self.assertRaises(UnknownNodeError):
             GraphSnapshot({root: (), a: (b,)}, root)
         with self.assertRaises(InvalidLinkOrderError):
@@ -554,7 +574,7 @@ class Layer0Tests(unittest.TestCase):
                     b: tuple(possible[index] for index in choices[2:]),
                 }
                 expected_error: type[ValueError] | None = None
-                if links[a][0] is None or links[b][0] is None:
+                if any(target is None for source in (a, b) for target in links[source]):
                     expected_error = UnboundOutputError
                 else:
                     for source in (a, b):
@@ -589,7 +609,7 @@ class Layer0Tests(unittest.TestCase):
                             raise AssertionError("Every committed output-0 chain must reach root")
                         self.assertLess(snapshot.position(target), snapshot.position(current))
                         current = target
-        self.assertEqual(accepted, 4)
+        self.assertEqual(accepted, 0)
 
     def test_all_512_nonempty_arrow_candidate_shapes(self) -> None:
         accepted = 0

@@ -1,24 +1,43 @@
-// Tokens carry bytes; grammar composers connect descriptions.
-int count = 5;
-bool x = true;
-bool z = x | x;
-print(z);
 
-func xx(bool a, bool b) bool {
-    return a && b
+public class Functions{}
+// Basic values are copied; class assignments alias runtime objects.
+Nat count = 10;
+Int offset = -5;
+Bool ready = true;
+Float ratio = 1.5;
+print(count - 20); // Nat subtraction stops at zero.
+print(offset);
+print(ready);
+print(ratio);
+
+class Point {
+    Int x;
+    Int y;
 }
 
-print(xx(z, false));
-print(count + 2 * 3);
-
-int i = 0;
-while (i < 3) {
-    print(i);
-    i = i + 1;
+// Methods are outside the class; this is the receiver.
+func Point.sum() Int {
+    return this.x + this.y;
 }
 
-if (z) {
-    print(42);
-} else {
-    print(0);
+func Point.move(Int dx, Int dy) Point {
+    this.x = this.x + dx;
+    this.y = this.y + dy;
+    return this;
 }
+
+Point p = Point{x:1, y:2};
+Point alias = p;
+alias.move(3, 4);
+print(p.sum()); // 10
+
+Point copied = p.Copy(); // New outer object; nested classes would remain aliases.
+copied.move(10, 0);
+print(p.sum());      // 10
+print(copied.sum()); // 20
+
+static func Functions.factorial(Nat n) Nat {
+    if (n <= 1) { return 1; }
+    else { return n * Functions.factorial(n - 1); }
+}
+print(Functions.factorial(5));

@@ -33,7 +33,7 @@ function label(node, graph) {
   if (["name", "integer", "boolean"].includes(node.kind)) {
     return `${node.kind}: ${graph.nodes.find(candidate => candidate.id === node.children[0]).text}`;
   }
-  if (node.kind === "binary" || node.kind === "unary") {
+  if (node.kind === "binary" || (node.kind === "unary" && node.children.length === 2)) {
     const operator = graph.nodes.find(candidate => candidate.id === node.children[node.kind === "binary" ? 1 : 0]);
     return `${node.kind}: ${operator.text}`;
   }
@@ -152,11 +152,12 @@ async function build() {
     example = result; exampleSource = source;
     element("example-count").textContent = `${result.tokens.length} token occurrences / ${result.nodes.length} total nodes / final n${result.final}`;
     element("tokens").replaceChildren();
-    for (const id of result.tokens) {
+    for (const [index, id] of result.tokens.entries()) {
       const node = result.nodes.find(node => node.id === id);
+      const position = result.occurrences[index];
       const cell = document.createElement("li"), button = document.createElement("button"), category = document.createElement("b"), text = document.createElement("span");
-      cell.dataset.node = id; button.type = "button"; category.textContent = node.kind; text.textContent = node.text;
-      button.title = `n${id} at ${node.line}:${node.column}`; button.append(category, text); button.addEventListener("click", () => select("example", id));
+      cell.dataset.node = id; cell.dataset.occurrence = index; button.type = "button"; category.textContent = node.kind; text.textContent = node.text;
+      button.title = `Occurrence ${index}: n${id} at ${position.line}:${position.column}`; button.append(category, text); button.addEventListener("click", () => select("example", id));
       cell.append(button); element("tokens").append(cell);
     }
     drawExample(); select("example", example.final); provenance();

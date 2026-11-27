@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nod / formal class checking</title>
+  <link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/stage.css">
+  <script src="/graph.js" defer></script><script src="/theory.js" defer></script>
+</head>
+<body>
+  <main>
+    <header><div><p class="eyebrow">Nod / formal specification checking</p><h1>Descriptions are nodes. Equality is checked.</h1>
+      <p class="intro">Formally check named class specifications and their TypeDef aliases without executing runtime effects. Sort(n) is native syntax. Annotation A:B is composed, then verified independently of node identity.</p></div></header>
+    <nav class="stage-nav"><a href="/">Runtime playground</a><a href="/tokenizer.html">Tokenizer</a><a href="/grammar.html">Grammar</a><a href="/theory.html" aria-current="page">Type theory</a></nav>
+    <div class="workspace">
+      <section class="panel">
+        <div class="panel-heading"><h2>Named class specifications</h2><button id="load-example" type="button">Load example</button></div>
+        <label class="sr-only" for="source">Formal specification source</label>
+        <textarea id="source" spellcheck="false" placeholder="Loading example..."></textarea>
+        <div class="editor-controls"><label><input id="auto" type="checkbox" checked> Check automatically</label><button id="check" class="primary" type="button">Compose &amp; check</button></div>
+        <p class="hint"><code>TypeDef H:((x:T)-&gt;U);</code> declares a checked class-local contract, not a field. <code>static func H Owner.prove { return ...; }</code> implements its named binders. Ordinary funcs remain non-dependent and class-owned. Checks target named declarations and TypeDef aliases, not anonymous functions or types. This page uses the runtime's specification checker with execution disabled.</p>
+        <div id="status" role="status" aria-live="polite">Connecting...</div><p id="provenance" class="hint"></p>
+      </section>
+      <section class="panel">
+        <h2>What is checked</h2>
+        <p class="hint"><code>Sort(0) : Sort(1)</code>, <code>Sort(1) : Sort(2)</code>, and so on. Sort(0) corresponds to Lean's Prop; Sort(1) to Type 0. Function universes use the numeric imax rule, including impredicative Prop.</p>
+        <pre id="summary"></pre>
+        <h3>Identity versus computation</h3>
+        <p class="hint">Repeated descriptions create distinct nodes. Alpha-renamed binders can still compare equal semantically. Beta substitution of named implementations and delta unfolding of aliases compare normalized structure, not node IDs.</p>
+        <p class="hint"><strong>Not full Lean:</strong> named class checks do not add induction, general proof elimination, symbolic universes, theorem search, or a general termination prover. Work is bounded.</p>
+      </section>
+    </div>
+    <section class="panel stage-example">
+      <h2>Checked named judgments / click to inspect</h2><p class="hint">Each row shows a named declaration or alias, its inferred type, and its normalized description. Distinct IDs do not imply unequal types. Checking a proposition description does not construct evidence.</p>
+      <div id="reports" class="report-list"></div>
+    </section>
+    <section class="graph-panel">
+      <div class="graph-heading"><h2 id="graph-title">Verified judgment graph</h2>
+        <label>Graph <select id="graph-mode"><option value="theory">Verified judgments</option><option value="syntax">Source grammar</option></select></label>
+        <label><input id="full" type="checkbox"> Show full graph</label>
+      </div>
+      <p class="graph-note" id="graph-note"></p><ol class="node-array" id="array" aria-label="Selected ordered nodes"></ol>
+      <div class="stage-scroll"><svg id="graph" role="group" aria-label="Formal specification graph"></svg></div>
+    </section>
+    <section class="panel inspector">
+      <h2 id="inspector-title">Select a report or node</h2>
+      <dl><dt>Graph / kind</dt><dd id="kind"></dd><dt>Value</dt><dd id="value"></dd><dt>Bytes</dt><dd id="bytes"></dd><dt>Inferred type</dt><dd id="type"></dd><dt>Constraints</dt><dd id="constraints"></dd><dt>Links</dt><dd id="links"></dd><dt>Logical slots</dt><dd id="slots"></dd></dl>
+    </section>
+    <footer>This page uses the real Python Node layer. The syntax graph retains user spellings, occurrences, and checked alias/field annotations. The specification checker establishes ordered dependent types; the judgment graph encodes verified type annotations without executing runtime effects. All output slots are bound. Invalid proposals do not replace the previous successful result.<br>No mandatory interning or singleton modes. Equality is a semantic judgment. This is a tested fragment, not a formal soundness proof or a complete Lean implementation.</footer>
+    <noscript>JavaScript and the local Nod server are required.</noscript>
+  </main>
+</body>
+</html>
